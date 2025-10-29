@@ -1,0 +1,73 @@
+-- llx_foodbank_beneficiaries
+CREATE TABLE IF NOT EXISTS llx_foodbank_beneficiaries (
+  rowid INT AUTO_INCREMENT PRIMARY KEY,
+  ref VARCHAR(64) NOT NULL,
+  lastname VARCHAR(120),
+  firstname VARCHAR(120),
+  phone VARCHAR(50),
+  email VARCHAR(255),
+  address VARCHAR(255),
+  note TEXT,
+  entity INT DEFAULT 1,
+  datec DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- llx_foodbank_vendors
+CREATE TABLE IF NOT EXISTS llx_foodbank_vendors (
+  rowid INT AUTO_INCREMENT PRIMARY KEY,
+  ref VARCHAR(64) NOT NULL,
+  name VARCHAR(255),
+  phone VARCHAR(50),
+  email VARCHAR(255),
+  address VARCHAR(255),
+  note TEXT,
+  entity INT DEFAULT 1,
+  datec DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- llx_foodbank_donations
+CREATE TABLE IF NOT EXISTS llx_foodbank_donations (
+  rowid INT AUTO_INCREMENT PRIMARY KEY,
+  ref VARCHAR(64) NOT NULL,
+  fk_vendor INT,
+  fk_beneficiary INT,
+  label VARCHAR(255),
+  quantity INT DEFAULT 0,
+  unit VARCHAR(50) DEFAULT 'unit',
+  date_donation DATETIME DEFAULT CURRENT_TIMESTAMP,
+  entity INT DEFAULT 1,
+  note TEXT,
+  datec DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX (fk_vendor),
+  INDEX (fk_beneficiary)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- llx_foodbank_distributions
+CREATE TABLE IF NOT EXISTS llx_foodbank_distributions (
+  rowid INT AUTO_INCREMENT PRIMARY KEY,
+  ref VARCHAR(64) NOT NULL,
+  fk_beneficiary INT,
+  fk_warehouse INT,
+  fk_user INT,
+  date_distribution DATETIME DEFAULT CURRENT_TIMESTAMP,
+  note TEXT,
+  entity INT DEFAULT 1,
+  datec DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- llx_foodbank_warehouses
+CREATE TABLE IF NOT EXISTS llx_foodbank_warehouses (
+  rowid INT AUTO_INCREMENT PRIMARY KEY,
+  ref VARCHAR(64) NOT NULL,
+  label VARCHAR(255),
+  address VARCHAR(255),
+  capacity INT DEFAULT 0,
+  note TEXT,
+  entity INT DEFAULT 1,
+  datec DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
