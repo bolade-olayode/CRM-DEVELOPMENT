@@ -1,8 +1,41 @@
 <?php
 require_once dirname(__DIR__, 2) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
-
 $langs->load("admin");
+
+if (!empty($user->id) && !isset($_GET['action']) && !isset($_GET['mainmenu']) && !isset($_SESSION['dol_loginmesg'])) {
+    
+    // Only redirect on first page load, not when navigating menus
+    if (!isset($_SESSION['foodbank_redirected']) || $_SESSION['foodbank_redirected'] !== true) {
+        
+        // Check if vendor
+        $sql_vendor = "SELECT COUNT(*) as count FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = ".(int)$user->id;
+        $res_vendor = $db->query($sql_vendor);
+        if ($res_vendor) {
+            $obj = $db->fetch_object($res_vendor);
+            if ($obj->count > 0) {
+                $_SESSION['foodbank_redirected'] = true;
+                header('Location: /custom/foodbankcrm/core/pages/dashboard_vendor.php');
+                exit;
+            }
+        }
+        
+        // Check if beneficiary
+        $sql_ben = "SELECT COUNT(*) as count FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+        $res_ben = $db->query($sql_ben);
+        if ($res_ben) {
+            $obj = $db->fetch_object($res_ben);
+            if ($obj->count > 0) {
+                $_SESSION['foodbank_redirected'] = true;
+                header('Location: /custom/foodbankcrm/core/pages/dashboard_beneficiary.php');
+                exit;
+            }
+        }
+        
+        // Mark as checked for admin users too
+        $_SESSION['foodbank_redirected'] = true;
+    }
+}
 
 // Determine user role and redirect to appropriate dashboard
 if (FoodbankPermissions::isAdmin($user)) {

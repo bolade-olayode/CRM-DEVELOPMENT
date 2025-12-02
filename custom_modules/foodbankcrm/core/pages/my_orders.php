@@ -1,123 +1,152 @@
 <?php
+/**
+ * My Orders - View Order History
+ */
+
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
 
+global $user, $db, $conf;
+
+// Reset redirect flag
+if (isset($_SESSION['foodbank_checked'])) {
+    $_SESSION['foodbank_checked'] = false;
+}
+
 $langs->load("admin");
 
-// Check if user is a beneficiary/subscriber
+// Security check - beneficiary only
 $user_is_beneficiary = FoodbankPermissions::isBeneficiary($user, $db);
 
 if (!$user_is_beneficiary) {
-    accessforbidden('You do not have access.');
+    accessforbidden('You do not have access to orders.');
 }
 
-// Get subscriber information
-$sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
-$res = $db->query($sql);
-$subscriber = $db->fetch_object($res);
-$subscriber_id = $subscriber->rowid;
+// Get beneficiary ID
+$sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+$res_ben = $db->query($sql_ben);
+$beneficiary = $db->fetch_object($res_ben);
+$beneficiary_id = $beneficiary->rowid;
+
+// Get filter
+$status_filter = GETPOST('status', 'alpha');
 
 llxHeader('', 'My Orders');
 
-print '<div><a href="dashboard_beneficiary.php">← Back to Dashboard</a></div><br>';
+// Hide left menu and make FULL WIDTH
+echo '<style>
+#id-left { display: none !important; }
+#id-right { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+.fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+body { background: #f8f9fa !important; }
+.login_block { width: 100% !important; }
+</style>';
 
-print '<h1>📦 My Orders</h1>';
+print '<div style="width: 100%; padding: 30px; box-sizing: border-box;">';
 
-// Filter by status
-$filter_status = GETPOST('status', 'alpha');
+print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">';
+print '<h1 style="margin: 0;">📦 My Orders</h1>';
+print '<a href="dashboard_beneficiary.php" class="butAction">← Back to Dashboard</a>';
+print '</div>';
 
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="margin-bottom: 20px;">';
-print '<label>Filter by Status: </label>';
-print '<select name="status" class="flat" onchange="this.form.submit()">';
+// Status filter
+print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+print '<label style="margin-right: 15px; font-weight: bold; font-size: 15px;">Filter by Status:</label>';
+print '<select name="status" onchange="this.form.submit()" style="padding: 10px 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 15px;">';
 print '<option value="">All Orders</option>';
-print '<option value="Pending" '.($filter_status == 'Pending' ? 'selected' : '').'>Pending</option>';
-print '<option value="Bundled" '.($filter_status == 'Bundled' ? 'selected' : '').'>Bundled</option>';
-print '<option value="Picked Up" '.($filter_status == 'Picked Up' ? 'selected' : '').'>Picked Up</option>';
-print '<option value="In Transit" '.($filter_status == 'In Transit' ? 'selected' : '').'>In Transit</option>';
-print '<option value="Delivered" '.($filter_status == 'Delivered' ? 'selected' : '').'>Delivered</option>';
+print '<option value="Prepared" '.($status_filter == 'Prepared' ? 'selected' : '').'>Prepared</option>';
+print '<option value="Packed" '.($status_filter == 'Packed' ? 'selected' : '').'>Packed</option>';
+print '<option value="Ready" '.($status_filter == 'Ready' ? 'selected' : '').'>Ready for Pickup</option>';
+print '<option value="Collected" '.($status_filter == 'Collected' ? 'selected' : '').'>Collected</option>';
+print '<option value="Delivered" '.($status_filter == 'Delivered' ? 'selected' : '').'>Delivered</option>';
 print '</select>';
 print '</form>';
 
-// Get orders
-$sql = "SELECT d.*, 
-        COUNT(dl.rowid) as item_count
+// Query orders - CORRECTED COLUMN NAME
+$sql = "SELECT d.rowid, d.ref, d.date_distribution, d.status, d.payment_method, 
+        d.total_amount, d.note
         FROM ".MAIN_DB_PREFIX."foodbank_distributions d
-        LEFT JOIN ".MAIN_DB_PREFIX."foodbank_distribution_lines dl ON d.rowid = dl.fk_distribution
-        WHERE d.fk_beneficiary = ".(int)$subscriber_id;
+        WHERE d.fk_beneficiary = ".(int)$beneficiary_id;
 
-if ($filter_status) {
-    $sql .= " AND d.status = '".$db->escape($filter_status)."'";
+if ($status_filter) {
+    $sql .= " AND d.status = '".$db->escape($status_filter)."'";
 }
 
-$sql .= " GROUP BY d.rowid ORDER BY d.date_creation DESC";
+$sql .= " ORDER BY d.date_distribution DESC";
 
-$res = $db->query($sql);
+$resql = $db->query($sql);
 
-if (!$res || $db->num_rows($res) == 0) {
-    print '<div style="text-align: center; padding: 60px; background: #f9f9f9; border-radius: 8px;">';
-    print '<div style="font-size: 64px; margin-bottom: 20px;">📦</div>';
-    print '<h2>No Orders Found</h2>';
-    print '<p style="color: #666;">'.($filter_status ? 'No orders with status: '.$filter_status : 'You haven\'t placed any orders yet.').'</p>';
-    print '<br><a class="butAction" href="product_catalog.php">Browse Products</a>';
-    print '</div>';
-    llxFooter();
-    exit;
-}
-
-print '<table class="noborder centpercent">';
-print '<tr class="liste_titre">';
-print '<th>Order Ref</th>';
-print '<th>Date</th>';
-print '<th class="center">Items</th>';
-print '<th class="center">Amount</th>';
-print '<th>Status</th>';
-print '<th>Payment</th>';
-print '<th>Delivery</th>';
-print '<th class="center">Actions</th>';
-print '</tr>';
-
-while ($order = $db->fetch_object($res)) {
-    // Status colors
-    $status_colors = array(
-        'Pending' => array('bg' => '#fff3e0', 'color' => '#f57c00', 'icon' => '⏳'),
-        'Bundled' => array('bg' => '#e3f2fd', 'color' => '#1976d2', 'icon' => '📦'),
-        'Picked Up' => array('bg' => '#e1f5fe', 'color' => '#0288d1', 'icon' => '🚚'),
-        'In Transit' => array('bg' => '#fff9c4', 'color' => '#f57f17', 'icon' => '🚛'),
-        'Delivered' => array('bg' => '#e8f5e9', 'color' => '#2e7d32', 'icon' => '✓')
-    );
-    $colors = $status_colors[$order->status] ?? array('bg' => '#f5f5f5', 'color' => '#666', 'icon' => '?');
+if ($resql) {
+    $num = $db->num_rows($resql);
     
-    // Payment colors
-    $payment_colors = array(
-        'Paid' => array('bg' => '#e8f5e9', 'color' => '#2e7d32'),
-        'Pending' => array('bg' => '#fff3e0', 'color' => '#f57c00'),
-        'Pay_On_Delivery' => array('bg' => '#e3f2fd', 'color' => '#1976d2')
-    );
-    $pay_colors = $payment_colors[$order->payment_status] ?? array('bg' => '#f5f5f5', 'color' => '#666');
-    
-    print '<tr class="oddeven">';
-    print '<td><strong>'.dol_escape_htmltag($order->ref).'</strong></td>';
-    print '<td>'.dol_print_date($db->jdate($order->date_creation), 'day').'</td>';
-    print '<td class="center">'.$order->item_count.'</td>';
-    print '<td class="center"><strong>₦'.number_format($order->total_amount, 2).'</strong></td>';
-    print '<td>';
-    print '<span style="display:inline-block; padding:4px 10px; border-radius:4px; background:'.$colors['bg'].'; color:'.$colors['color'].'; font-weight:bold; font-size:11px;">';
-    print $colors['icon'].' '.dol_escape_htmltag($order->status);
-    print '</span>';
-    print '</td>';
-    print '<td>';
-    print '<span style="display:inline-block; padding:4px 8px; border-radius:3px; background:'.$pay_colors['bg'].'; color:'.$pay_colors['color'].'; font-size:10px; font-weight:bold;">';
-    print str_replace('_', ' ', $order->payment_status);
-    print '</span>';
-    print '</td>';
-    print '<td style="font-size: 12px; color: #666;">'.dol_trunc($order->delivery_address, 30).'</td>';
-    print '<td class="center">';
-    print '<a href="view_order.php?id='.$order->rowid.'">View Details</a>';
-    print '</td>';
-    print '</tr>';
+    if ($num > 0) {
+        print '<div style="display: grid; gap: 25px;">';
+        
+        while ($obj = $db->fetch_object($resql)) {
+            // Status color
+            $status_colors = array(
+                'Prepared' => '#ffc107',
+                'Packed' => '#17a2b8',
+                'Ready' => '#6f42c1',
+                'Collected' => '#fd7e14',
+                'Delivered' => '#28a745'
+            );
+            $color = $status_colors[$obj->status] ?? '#6c757d';
+            
+            print '<div style="background: white; border-left: 5px solid '.$color.'; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            
+            print '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">';
+            print '<div>';
+            print '<h3 style="margin: 0 0 8px 0; font-size: 20px;">Order '.dol_escape_htmltag($obj->ref).'</h3>';
+            print '<p style="margin: 0; color: #666; font-size: 15px;">'.dol_print_date($db->jdate($obj->date_distribution), 'day').'</p>';
+            print '</div>';
+            print '<div style="background: '.$color.'; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 14px;">';
+            print dol_escape_htmltag($obj->status);
+            print '</div>';
+            print '</div>';
+            
+            print '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px;">';
+            
+            if ($obj->payment_method) {
+                print '<div>';
+                print '<div style="color: #666; font-size: 13px; margin-bottom: 5px;">Payment Method</div>';
+                print '<div style="font-weight: bold; font-size: 15px;">'.dol_escape_htmltag($obj->payment_method).'</div>';
+                print '</div>';
+            }
+            
+            print '<div>';
+            print '<div style="color: #666; font-size: 13px; margin-bottom: 5px;">Total Amount</div>';
+            print '<div style="font-weight: bold; font-size: 22px; color: #28a745;">₦'.number_format($obj->total_amount, 0).'</div>';
+            print '</div>';
+            
+            print '</div>';
+            
+            if ($obj->note) {
+                print '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 20px;">';
+                print '<strong style="font-size: 14px;">Notes:</strong><br>';
+                print '<span style="font-size: 14px;">'.nl2br(dol_escape_htmltag($obj->note)).'</span>';
+                print '</div>';
+            }
+            
+            print '<a href="view_order.php?id='.$obj->rowid.'" class="butAction" style="margin: 0; padding: 10px 20px; font-size: 15px;">View Details</a>';
+            
+            print '</div>';
+        }
+        
+        print '</div>';
+    } else {
+        print '<div style="text-align: center; padding: 80px 20px; background: white; border-radius: 8px;">';
+        print '<div style="font-size: 80px; margin-bottom: 20px;">📦</div>';
+        print '<h2 style="margin: 0 0 10px 0;">No Orders Found</h2>';
+        print '<p style="color: #666; font-size: 16px; margin-bottom: 30px;">You haven\'t placed any orders yet.</p>';
+        print '<a href="product_catalog.php" class="butAction" style="padding: 12px 24px; font-size: 16px;">BROWSE PRODUCTS</a>';
+        print '</div>';
+    }
+} else {
+    print '<div class="error">Error loading orders: '.$db->lasterror().'</div>';
 }
 
-print '</table>';
+print '</div>';
 
 llxFooter();
 ?>

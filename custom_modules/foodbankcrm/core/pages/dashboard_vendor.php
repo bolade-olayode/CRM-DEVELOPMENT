@@ -12,6 +12,11 @@ require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php'
 
 global $user, $db, $conf;
 
+// Reset redirect flag so navigation works
+if (isset($_SESSION['foodbank_checked'])) {
+    $_SESSION['foodbank_checked'] = false;
+}
+
 $langs->load("admin");
 
 // Security check - vendor only

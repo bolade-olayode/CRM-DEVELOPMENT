@@ -16,7 +16,7 @@ class modFoodbankcrm extends DolibarrModules
         $this->name         = 'foodbankcrm';
         $this->description  = 'Foodbank CRM custom module';
         $this->version      = '1.2';
-        $this->editor_name  = 'YourName';
+        $this->editor_name  = 'Olayode Boladde';
         $this->editor_url   = '';
 
         $this->const        = array();
@@ -29,9 +29,7 @@ class modFoodbankcrm extends DolibarrModules
         $this->requiredby   = array();
         $this->conflictwith = array();
 
-        $this->module_parts = array(
-    'hooks' => array('commonobject')
-);
+        $this->module_parts = array();
         // ---- Permissions ----
         $this->rights = array();
         $r = 0;

@@ -1,252 +1,225 @@
+
 <?php
+/**
+ * Product Catalog - Browse Available Packages
+ */
+
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+require_once __DIR__."/check_subscription_status.php";
+
+global $user, $db, $conf;
+
+if (isset($_SESSION['foodbank_checked'])) {
+    $_SESSION['foodbank_checked'] = false;
+}
 
 $langs->load("admin");
 
-// Check if user is a subscriber (beneficiary)
-$user_is_subscriber = FoodbankPermissions::isBeneficiary($user, $db);
-$subscriber_id = null;
+$user_is_beneficiary = FoodbankPermissions::isBeneficiary($user, $db);
 
-if ($user_is_subscriber) {
-    // Get subscriber record
-    $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
-    $res = $db->query($sql);
-    if ($res && $db->num_rows($res) > 0) {
-        $subscriber = $db->fetch_object($res);
-        $subscriber_id = $subscriber->rowid;
-        
-        // Check subscription status
-        if ($subscriber->subscription_status != 'Active') {
-            llxHeader('', 'Product Catalog');
-            print '<div class="error" style="padding: 40px; text-align: center;">';
-            print '<h2>🔒 Subscription Required</h2>';
-            print '<p>Your subscription status is: <strong>'.dol_escape_htmltag($subscriber->subscription_status).'</strong></p>';
-            
-            if ($subscriber->subscription_status == 'Pending') {
-                print '<p>Please complete your payment to activate your subscription.</p>';
-            } elseif ($subscriber->subscription_status == 'Expired') {
-                print '<p>Your subscription has expired. Please renew to continue shopping.</p>';
-            }
-            
-            print '<br><a class="button" href="/custom/foodbankcrm/core/pages/dashboard_beneficiary.php">Go to Dashboard</a>';
-            print '</div>';
-            llxFooter();
-            exit;
-        }
-    }
+if (!$user_is_beneficiary) {
+    accessforbidden('You do not have access to the product catalog.');
 }
 
-llxHeader('', 'Product Catalog');
+$search_text = GETPOST('search_text', 'alpha');
+$sort_by = GETPOST('sort_by', 'alpha') ?: 'name';
 
-// Search and filter
-$search_query = GETPOST('search', 'alpha');
-$filter_category = GETPOST('category', 'alpha');
-$sort = GETPOST('sort', 'alpha') ?: 'name';
+llxHeader('', 'Browse Packages');
 
-print '<div style="margin-bottom: 20px;">';
-print '<h1>🛒 Product Catalog</h1>';
+echo '<style>
+#id-left { display: none !important; }
+#id-right { margin-left: 0 !important; width: 100% !important; padding: 0 !important; }
+.fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+body { background: #f8f9fa !important; }
+.login_block { width: 100% !important; }
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.quantity-btn {
+    width: 35px;
+    height: 35px;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quantity-btn:hover {
+    background: #667eea;
+    color: white;
+}
+
+.quantity-display {
+    font-size: 20px;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+}
+</style>';
+
+print '<div style="width: 100%; padding: 30px; box-sizing: border-box;">';
+
+print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">';
+print '<h1 style="margin: 0;">🎁 Available Packages</h1>';
+print '<a href="dashboard_beneficiary.php" class="butAction">← Back to Dashboard</a>';
 print '</div>';
 
-// Search form
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="margin-bottom: 20px;">';
-print '<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">';
+print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+print '<div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 15px; align-items: end;">';
 
-print '<input type="text" name="search" class="flat" placeholder="Search products..." value="'.dol_escape_htmltag($search_query).'" style="flex: 1; min-width: 200px;">';
+print '<div>';
+print '<label style="display: block; margin-bottom: 8px; font-weight: bold;">Search packages</label>';
+print '<input type="text" name="search_text" value="'.dol_escape_htmltag($search_text).'" placeholder="Search by package name..." style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 15px;">';
+print '</div>';
 
-print '<select name="category" class="flat" style="width: 150px;">';
-print '<option value="">All Categories</option>';
-print '<option value="Grains" '.($filter_category == 'Grains' ? 'selected' : '').'>Grains</option>';
-print '<option value="Vegetables" '.($filter_category == 'Vegetables' ? 'selected' : '').'>Vegetables</option>';
-print '<option value="Proteins" '.($filter_category == 'Proteins' ? 'selected' : '').'>Proteins</option>';
-print '<option value="Dairy" '.($filter_category == 'Dairy' ? 'selected' : '').'>Dairy</option>';
-print '<option value="Other" '.($filter_category == 'Other' ? 'selected' : '').'>Other</option>';
+print '<div>';
+print '<label style="display: block; margin-bottom: 8px; font-weight: bold;">Sort by</label>';
+print '<select name="sort_by" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 15px;">';
+print '<option value="name" '.($sort_by == 'name' ? 'selected' : '').'>Name</option>';
+print '<option value="price" '.($sort_by == 'price' ? 'selected' : '').'>Price</option>';
 print '</select>';
+print '</div>';
 
-print '<select name="sort" class="flat" style="width: 150px;">';
-print '<option value="name" '.($sort == 'name' ? 'selected' : '').'>Sort by Name</option>';
-print '<option value="price_low" '.($sort == 'price_low' ? 'selected' : '').'>Price: Low to High</option>';
-print '<option value="price_high" '.($sort == 'price_high' ? 'selected' : '').'>Price: High to Low</option>';
-print '<option value="stock" '.($sort == 'stock' ? 'selected' : '').'>Stock Available</option>';
-print '</select>';
-
-print '<button type="submit" class="button">Search</button>';
-print '<a href="'.$_SERVER['PHP_SELF'].'" class="button">Clear</a>';
+print '<div style="display: flex; gap: 10px;">';
+print '<button type="submit" class="butAction" style="margin: 0; padding: 12px 24px;">SEARCH</button>';
+print '<a href="'.$_SERVER['PHP_SELF'].'" class="butAction" style="margin: 0; padding: 12px 24px; background: #6c757d;">CLEAR</a>';
+print '</div>';
 
 print '</div>';
 print '</form>';
 
-// Cart summary (if subscriber)
-if ($subscriber_id) {
-    $sql = "SELECT COUNT(*) as count, SUM(quantity * unit_price) as total 
-            FROM ".MAIN_DB_PREFIX."foodbank_cart 
-            WHERE fk_subscriber = ".(int)$subscriber_id;
-    $res = $db->query($sql);
-    $cart = $db->fetch_object($res);
-    
-    if ($cart && $cart->count > 0) {
-        print '<div style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">';
-        print '<div>';
-        print '<strong>🛒 Your Cart:</strong> '.$cart->count.' item(s) | ';
-        print '<strong>Total: ₦'.number_format($cart->total, 2).'</strong>';
-        print '</div>';
-        print '<a class="button" href="view_cart.php">View Cart & Checkout</a>';
-        print '</div>';
-    }
+$sql = "SELECT p.rowid, p.ref, p.name, p.description, p.status,
+        GROUP_CONCAT(CONCAT(pi.product_name, ' (', pi.quantity, ' ', pi.unit, ')') SEPARATOR ', ') as items_list,
+        SUM(pi.quantity * pi.unit_price) as total_price
+        FROM ".MAIN_DB_PREFIX."foodbank_packages p
+        LEFT JOIN ".MAIN_DB_PREFIX."foodbank_package_items pi ON p.rowid = pi.fk_package
+        WHERE p.status = 'Active'";
+
+if ($search_text) {
+    $sql .= " AND p.name LIKE '%".$db->escape($search_text)."%'";
 }
 
-// Build SQL query
-$sql = "SELECT d.*, 
-        (d.quantity - d.quantity_allocated) as available_stock,
-        v.name as vendor_name
-        FROM ".MAIN_DB_PREFIX."foodbank_donations d
-        LEFT JOIN ".MAIN_DB_PREFIX."foodbank_vendors v ON d.fk_vendor = v.rowid
-        WHERE d.status = 'Received' 
-        AND d.is_available_for_purchase = 1
-        AND (d.quantity - d.quantity_allocated) > 0";
+$sql .= " GROUP BY p.rowid";
 
-// Search filter
-if ($search_query) {
-    $sql .= " AND (d.product_name LIKE '%".$db->escape($search_query)."%' 
-              OR d.description LIKE '%".$db->escape($search_query)."%')";
-}
-
-// Category filter
-if ($filter_category) {
-    $sql .= " AND d.category = '".$db->escape($filter_category)."'";
-}
-
-// Sorting
-switch ($sort) {
-    case 'price_low':
-        $sql .= " ORDER BY d.unit_price ASC";
-        break;
-    case 'price_high':
-        $sql .= " ORDER BY d.unit_price DESC";
-        break;
-    case 'stock':
-        $sql .= " ORDER BY available_stock DESC";
-        break;
-    default:
-        $sql .= " ORDER BY d.product_name ASC";
-}
-
-$res = $db->query($sql);
-
-if (!$res) {
-    print '<div class="error">SQL Error: '.$db->lasterror().'</div>';
-    llxFooter();
-    exit;
-}
-
-$num_products = $db->num_rows($res);
-
-print '<div style="margin-bottom: 15px; color: #666;">';
-print 'Showing <strong>'.$num_products.'</strong> product'.($num_products != 1 ? 's' : '');
-print '</div>';
-
-if ($num_products == 0) {
-    print '<div style="text-align: center; padding: 60px; background: #f9f9f9; border-radius: 8px;">';
-    print '<div style="font-size: 64px; margin-bottom: 20px;">📦</div>';
-    print '<h2>No Products Available</h2>';
-    print '<p style="color: #666;">Check back later for new products!</p>';
-    print '</div>';
+if ($sort_by == 'price') {
+    $sql .= " ORDER BY total_price ASC";
 } else {
-    // Product grid
-    print '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">';
-    
-    while ($obj = $db->fetch_object($res)) {
-        $in_stock = $obj->available_stock > 0;
-        $low_stock = $obj->available_stock <= $obj->stock_threshold;
-        
-        print '<div style="border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s;" onmouseover="this.style.transform=\'translateY(-5px)\'" onmouseout="this.style.transform=\'translateY(0)\'">';
-        
-        // Product image placeholder
-        print '<div style="height: 180px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 64px;">';
-        
-        // Category emoji
-        $emoji = '📦';
-        switch($obj->category) {
-            case 'Grains': $emoji = '🌾'; break;
-            case 'Vegetables': $emoji = '🥕'; break;
-            case 'Proteins': $emoji = '🍗'; break;
-            case 'Dairy': $emoji = '🥛'; break;
-        }
-        print $emoji;
-        print '</div>';
-        
-        // Product info
-        print '<div style="padding: 15px;">';
-        
-        // Category badge
-        print '<div style="display: inline-block; background: #e3f2fd; color: #1976d2; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; margin-bottom: 10px;">';
-        print dol_escape_htmltag($obj->category);
-        print '</div>';
-        
-        // Product name
-        print '<h3 style="margin: 10px 0; font-size: 18px; color: #333;">';
-        print dol_escape_htmltag($obj->product_name);
-        print '</h3>';
-        
-        // Description
-        if ($obj->description) {
-            print '<p style="font-size: 13px; color: #666; margin: 10px 0; line-height: 1.4;">';
-            print dol_trunc(dol_escape_htmltag($obj->description), 80);
-            print '</p>';
-        }
-        
-        // Vendor
-        if ($obj->vendor_name) {
-            print '<p style="font-size: 12px; color: #999; margin: 5px 0;">';
-            print '👤 '.dol_escape_htmltag($obj->vendor_name);
-            print '</p>';
-        }
-        
-        // Stock info
-        print '<div style="margin: 10px 0;">';
-        if ($low_stock) {
-            print '<span style="background: #fff3e0; color: #f57c00; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold;">';
-            print '⚠ Low Stock: '.$obj->available_stock.' '.$obj->unit;
-        } else {
-            print '<span style="background: #e8f5e9; color: #2e7d32; padding: 3px 8px; border-radius: 3px; font-size: 11px; font-weight: bold;">';
-            print '✓ In Stock: '.$obj->available_stock.' '.$obj->unit;
-        }
-        print '</span>';
-        print '</div>';
-        
-        // Price and action
-        print '<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">';
-        
-        print '<div>';
-        print '<div style="font-size: 24px; font-weight: bold; color: #1976d2;">₦'.number_format($obj->unit_price, 2).'</div>';
-        print '<div style="font-size: 11px; color: #999;">per '.$obj->unit.'</div>';
-        print '</div>';
-        
-        if ($subscriber_id && $in_stock) {
-            print '<a href="add_to_cart.php?product_id='.$obj->rowid.'" class="button" style="text-decoration: none;">Add to Cart</a>';
-        } else {
-            print '<button class="button" disabled style="opacity: 0.5; cursor: not-allowed;">Out of Stock</button>';
-        }
-        
-        print '</div>';
-        
-        print '</div>'; // end product info
-        print '</div>'; // end product card
-    }
-    
-    print '</div>'; // end grid
+    $sql .= " ORDER BY p.name ASC";
 }
 
-print '<div style="margin-top: 30px; background: #e3f2fd; padding: 20px; border-radius: 5px; border-left: 4px solid #2196f3;">';
-print '<h3 style="margin-top: 0;">💡 How to Order</h3>';
-print '<ol style="margin-bottom: 0;">';
-print '<li>Browse products and add items to your cart</li>';
-print '<li>Review your cart and adjust quantities</li>';
-print '<li>Proceed to checkout</li>';
-print '<li>Choose payment method (Pay Now or Pay on Delivery)</li>';
-print '<li>Track your order status in your dashboard</li>';
-print '</ol>';
+$resql = $db->query($sql);
+
+if ($resql) {
+    $num = $db->num_rows($resql);
+    
+    if ($num > 0) {
+        print '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px;">';
+        
+        while ($obj = $db->fetch_object($resql)) {
+            $package_price = $obj->total_price ?? 0;
+            
+            print '<div style="background: white; border: 2px solid #e0e0e0; border-radius: 8px; padding: 25px; transition: all 0.2s; position: relative;" onmouseover="this.style.borderColor=\'#667eea\'; this.style.transform=\'translateY(-5px)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.1)\'" onmouseout="this.style.borderColor=\'#e0e0e0\'; this.style.transform=\'translateY(0)\'; this.style.boxShadow=\'none\'">';
+            
+            print '<div style="font-size: 64px; text-align: center; margin-bottom: 20px;">📦</div>';
+            
+            print '<h3 style="margin: 0 0 10px 0; color: #333; font-size: 20px; text-align: center;">'.dol_escape_htmltag($obj->name).'</h3>';
+            
+            if ($obj->description) {
+                print '<p style="color: #666; font-size: 14px; margin: 0 0 15px 0; text-align: center; min-height: 40px;">'.dol_escape_htmltag($obj->description).'</p>';
+            }
+            
+            if ($obj->items_list) {
+                print '<div style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin-bottom: 15px; min-height: 80px;">';
+                print '<strong style="font-size: 13px; color: #666;">📋 Package Includes:</strong><br>';
+                print '<div style="font-size: 13px; margin-top: 8px; line-height: 1.6;">'.dol_escape_htmltag($obj->items_list).'</div>';
+                print '</div>';
+            }
+            
+            print '<div style="text-align: center; margin-bottom: 20px;">';
+            if ($package_price > 0) {
+                print '<div style="font-size: 28px; font-weight: bold; color: #28a745;">₦'.number_format($package_price, 0).'</div>';
+            } else {
+                print '<div style="font-size: 16px; color: #dc3545;">Price not set</div>';
+            }
+            print '</div>';
+            
+            if ($package_price > 0) {
+                // Quantity selector
+                print '<div class="quantity-selector">';
+                print '<button type="button" class="quantity-btn" onclick="decreaseQty('.$obj->rowid.')">−</button>';
+                print '<span class="quantity-display" id="qty-'.$obj->rowid.'">1</span>';
+                print '<button type="button" class="quantity-btn" onclick="increaseQty('.$obj->rowid.')">+</button>';
+                print '</div>';
+                
+                print '<a href="javascript:void(0);" onclick="addToCart('.$obj->rowid.')" id="btn-'.$obj->rowid.'" class="butAction" style="display: block; text-align: center; margin: 0; padding: 12px; font-size: 15px;">🛒 Add to Cart</a>';
+            } else {
+                print '<button disabled class="butAction" style="display: block; width: 100%; text-align: center; margin: 0; padding: 12px; font-size: 15px; background: #ccc; cursor: not-allowed;">Unavailable</button>';
+            }
+            
+            print '</div>';
+        }
+        
+        print '</div>';
+    } else {
+        print '<div style="text-align: center; padding: 80px 20px; background: white; border-radius: 8px;">';
+        print '<div style="font-size: 80px; margin-bottom: 20px;">📭</div>';
+        print '<h2 style="margin: 0 0 10px 0;">No Packages Available</h2>';
+        print '<p style="color: #666; font-size: 16px;">Check back later for new packages!</p>';
+        print '</div>';
+    }
+} else {
+    print '<div class="error">Error loading packages: '.$db->lasterror().'</div>';
+}
+
 print '</div>';
 
+print '<div style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;">';
+print '<a href="view_cart.php" class="butAction" style="display: block; padding: 15px 25px; font-size: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); background: #28a745; border-radius: 50px; text-decoration: none;">🛒 View Cart</a>';
+print '</div>';
+
+?>
+
+<script>
+function increaseQty(packageId) {
+    let qtyEl = document.getElementById('qty-' + packageId);
+    let currentQty = parseInt(qtyEl.textContent);
+    if (currentQty < 99) {
+        qtyEl.textContent = currentQty + 1;
+    }
+}
+
+function decreaseQty(packageId) {
+    let qtyEl = document.getElementById('qty-' + packageId);
+    let currentQty = parseInt(qtyEl.textContent);
+    if (currentQty > 1) {
+        qtyEl.textContent = currentQty - 1;
+    }
+}
+
+function addToCart(packageId) {
+    let qty = parseInt(document.getElementById('qty-' + packageId).textContent);
+    let btn = document.getElementById('btn-' + packageId);
+    
+    // Disable button and show loading
+    btn.innerHTML = '⏳ Adding...';
+    btn.style.pointerEvents = 'none';
+    
+    // Redirect with quantity
+    window.location.href = 'add_to_cart.php?id=' + packageId + '&quantity=' + qty;
+}
+</script>
+
+<?php
 llxFooter();
 ?>
