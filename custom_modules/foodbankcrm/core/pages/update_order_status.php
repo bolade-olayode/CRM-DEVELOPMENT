@@ -16,7 +16,7 @@ if (!$order_id || !$new_status) {
 }
 
 // Validate status
-$valid_statuses = array('Pending', 'Bundled', 'Picked Up', 'In Transit', 'Delivered');
+$valid_statuses = array('Pending', 'Prepared', 'Bundled', 'In Transit', 'Delivered');
 if (!in_array($new_status, $valid_statuses)) {
     header('Location: admin_orders.php');
     exit;
@@ -33,14 +33,14 @@ if ($db->query($sql)) {
         $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_distributions 
                 SET payment_status = 'Paid', payment_date = NOW() 
                 WHERE rowid = ".(int)$order_id." 
-                AND payment_status = 'Pay_On_Delivery'";
+                AND payment_status = 'Pay on Delivery'";
         $db->query($sql);
         
         // Also update payment record
         $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_payments 
                 SET payment_status = 'Success', payment_date = NOW() 
                 WHERE fk_order = ".(int)$order_id." 
-                AND payment_status = 'Pay_On_Delivery'";
+                AND payment_status = 'Pay on Delivery'";
         $db->query($sql);
     }
     

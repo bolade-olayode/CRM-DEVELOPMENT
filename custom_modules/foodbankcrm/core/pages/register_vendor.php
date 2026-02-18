@@ -42,7 +42,7 @@ if ($action == 'register' && empty($error)) {
 
     // Inputs
     $username       = GETPOST('username', 'alpha');
-    $pass           = GETPOST('password', 'alpha');
+    $pass           = GETPOST('password', 'none');
     
     // Contact Info
     $contact_person = GETPOST('contact_person', 'alpha');

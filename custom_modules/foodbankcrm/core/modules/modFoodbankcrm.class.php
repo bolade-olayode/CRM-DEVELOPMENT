@@ -166,7 +166,7 @@ class modFoodbankcrm extends DolibarrModules
         $this->menu[$r] = array(
             'fk_menu'   => 'fk_mainmenu=foodbankcrm',
             'type'      => 'left',
-            'titre'     => 'Beneficiaries',
+            'titre'     => 'Subscribers',
             'mainmenu'  => 'foodbankcrm',
             'leftmenu'  => 'foodbankcrm_beneficiaries',
             'url'       => '/custom/foodbankcrm/core/pages/beneficiaries.php',

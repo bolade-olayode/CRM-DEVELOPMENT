@@ -6,7 +6,6 @@
 
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
-require_once __DIR__."/check_subscription_status.php";
 
 global $user, $db, $conf;
 
@@ -17,16 +16,19 @@ if (!$user_is_beneficiary) {
     accessforbidden('You do not have access.');
 }
 
-// Get beneficiary ID
-$sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+// Get beneficiary record (full row needed for subscription check)
+$sql_ben = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
 $res_ben = $db->query($sql_ben);
 
 if (!$res_ben || $db->num_rows($res_ben) == 0) {
     accessforbidden('Beneficiary profile not found.');
 }
 
-$beneficiary = $db->fetch_object($res_ben);
-$subscriber_id = $beneficiary->rowid;
+$subscriber = $db->fetch_object($res_ben);
+$subscriber_id = $subscriber->rowid;
+
+// Now that $subscriber and $subscriber_id are defined, check subscription status
+require_once __DIR__."/check_subscription_status.php";
 
 // Get package ID from URL
 $package_id = GETPOST('id', 'int');

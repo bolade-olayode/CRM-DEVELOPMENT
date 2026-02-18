@@ -226,7 +226,11 @@ if (empty($_SESSION['cart'])) {
         $sql = "SELECT rowid, name, description FROM ".MAIN_DB_PREFIX."foodbank_packages WHERE rowid = ".(int)$id;
         $res = $db->query($sql);
         if ($obj = $db->fetch_object($res)) {
-            $price = 4100; // Mock Price
+            // Calculate real price from package items
+            $sql_price = "SELECT SUM(pi.quantity * pi.unit_price) as total_price FROM ".MAIN_DB_PREFIX."foodbank_package_items pi WHERE pi.fk_package = ".(int)$id;
+            $res_price = $db->query($sql_price);
+            $obj_price = $db->fetch_object($res_price);
+            $price = ($obj_price && $obj_price->total_price) ? (float)$obj_price->total_price : 0;
             $subtotal = $price * $qty;
             $total_cart += $subtotal;
             

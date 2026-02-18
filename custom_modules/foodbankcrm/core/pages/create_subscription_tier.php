@@ -24,12 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $description = GETPOST('description', 'restricthtml');
         $benefits = GETPOST('benefits', 'restricthtml');
         
-        $sql = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_subscription_tiers 
-                (tier_name, tier_type, duration_months, price, description, benefits, is_active) 
+        $duration_days = (int)$duration_months * 30;
+        $sql = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_subscription_tiers
+                (tier_name, tier_type, duration_months, duration_days, price, description, benefits, is_active)
                 VALUES (
                     '".$db->escape($tier_name)."',
                     '".$db->escape($tier_type)."',
                     ".(int)$duration_months.",
+                    ".(int)$duration_days.",
                     ".(float)$price.",
                     '".$db->escape($description)."',
                     '".$db->escape($benefits)."',

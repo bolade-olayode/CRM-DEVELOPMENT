@@ -1,6 +1,6 @@
 <?php
 /**
- * Subscription Payment Callback - ROBUST FIX
+ * Subscription Payment Callback - FIXED KEY (Underscore added)
  */
 
 require_once dirname(__DIR__, 4) . '/main.inc.php';
@@ -20,9 +20,8 @@ if (empty($reference) || empty($tier_type)) {
 }
 
 // 2. Verify with Paystack
-// 🔴 KEY FIX: We use trim() to remove any accidental spaces
-$raw_key = 'sk_test_24845eca974e163568aa6dd497590551e1ad2260';
-$paystack_secret_key = trim($raw_key); 
+// 🔴 FIXED: Added the underscore (_) between sk_test and the numbers
+$paystack_secret_key = 'sk_test_24845eca974e163568aa6dd497590551e1ad2260'; 
 
 $curl = curl_init();
 curl_setopt_array($curl, array(
@@ -38,7 +37,7 @@ $response = curl_exec($curl);
 $err = curl_error($curl);
 curl_close($curl);
 
-// --- ERROR PAGE ---
+// --- ERROR UI ---
 function printErrorPage($msg) {
     llxHeader('', 'Payment Error');
     print '<style>
@@ -52,7 +51,7 @@ function printErrorPage($msg) {
     </style>';
     print '<div class="error-card">';
     print '<div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>';
-    print '<h2 style="color: #dc3545; margin: 0 0 15px 0;">Verification Failed</h2>';
+    print '<h2 style="color: #dc3545; margin: 0 0 15px 0;">Payment Verification Failed</h2>';
     print '<p style="color: #666; margin-bottom: 25px;">'.$msg.'</p>';
     print '<a href="renew_subscription.php" class="butAction">Try Again</a>';
     print '</div>';
@@ -80,6 +79,10 @@ if ($result && isset($result->data) && $result->data->status == 'success') {
     $res_tier = $db->query($sql_tier);
     $tier = $db->fetch_object($res_tier);
     
+    if (!$tier) {
+        printErrorPage('Configuration Error: Subscription Tier not found.');
+    }
+    
     // Dates & Amount
     $start_date = date('Y-m-d');
     $end_date = date('Y-m-d', strtotime('+' . $tier->duration_days . ' days'));
@@ -99,9 +102,9 @@ if ($result && isset($result->data) && $result->data->status == 'success') {
                        last_payment_date = NOW()
                        WHERE rowid = ".(int)$subscriber_id;
         
-        if (!$db->query($sql_update)) throw new Exception('Update Failed');
+        if (!$db->query($sql_update)) throw new Exception('Profile Update Failed: '.$db->lasterror());
         
-        // Record Payment
+        // Record Transaction
         $sql_payment = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_payments 
                         (fk_subscriber, payment_type, amount, payment_method, payment_status, 
                          payment_reference, payment_date, datec)
@@ -116,7 +119,7 @@ if ($result && isset($result->data) && $result->data->status == 'success') {
                             NOW()
                         )";
         
-        if (!$db->query($sql_payment)) throw new Exception('Payment Record Failed');
+        if (!$db->query($sql_payment)) throw new Exception('Payment Record Failed: '.$db->lasterror());
         
         $db->commit();
         
@@ -130,7 +133,8 @@ if ($result && isset($result->data) && $result->data->status == 'success') {
     }
     
 } else {
-    $msg = isset($result->message) ? $result->message : 'Unknown gateway error';
+    // Show specific error from Paystack
+    $msg = isset($result->message) ? $result->message : 'Unknown error from payment gateway';
     printErrorPage('Paystack Error: ' . $msg);
 }
 ?>

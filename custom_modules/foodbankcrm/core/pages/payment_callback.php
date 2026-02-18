@@ -15,7 +15,7 @@ if (empty($reference)) {
 }
 
 // Verify payment with Paystack
-$paystack_secret_key = 'sk_test 24845eca974e163568aa6dd497590551e1ad2260'; // REPLACE THIS
+$paystack_secret_key = 'sk_test_24845eca974e163568aa6dd497590551e1ad2260'; 
 
 $curl = curl_init();
 curl_setopt_array($curl, array(
@@ -44,12 +44,13 @@ if ($result->data->status == 'success') {
 
     if ($order_id > 0) {
         // 2. UPDATE the existing order
-        $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_distributions 
+        // Note: Do NOT overwrite total_amount from Paystack response — keep the original order total
+        $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_distributions
                 SET payment_status = 'Paid',
                     status = 'Prepared',
                     payment_reference = '".$db->escape($reference)."',
                     payment_gateway = 'Paystack',
-                    total_amount = ".((float)$result->data->amount / 100)."
+                    payment_date = NOW()
                 WHERE rowid = ".$order_id;
         
         $db->query($sql);

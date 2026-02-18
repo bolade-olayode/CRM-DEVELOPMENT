@@ -163,13 +163,13 @@ while ($order = $db->fetch_object($res)) {
     print '</span>';
     print '</td>';
     print '<td class="center">';
-    print '<a href="admin_view_order.php?id='.$order->rowid.'">View</a> | ';
-    
+    print '<a href="view_distribution.php?id='.$order->rowid.'">View</a> | ';
+
     if ($order->status == 'Pending') {
+        print '<a href="update_order_status.php?id='.$order->rowid.'&status=Prepared" style="color: #ffc107;">Mark Prepared</a>';
+    } elseif ($order->status == 'Prepared') {
         print '<a href="update_order_status.php?id='.$order->rowid.'&status=Bundled" style="color: #1976d2;">Start Processing</a>';
     } elseif ($order->status == 'Bundled') {
-        print '<a href="update_order_status.php?id='.$order->rowid.'&status=Picked Up" style="color: #0288d1;">Mark Picked Up</a>';
-    } elseif ($order->status == 'Picked Up') {
         print '<a href="update_order_status.php?id='.$order->rowid.'&status=In Transit" style="color: #f57f17;">Mark In Transit</a>';
     } elseif ($order->status == 'In Transit') {
         print '<a href="update_order_status.php?id='.$order->rowid.'&status=Delivered" style="color: #2e7d32;">Mark Delivered</a>';

@@ -42,10 +42,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $description = GETPOST('description', 'restricthtml');
         $benefits = GETPOST('benefits', 'restricthtml');
         
-        $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_subscription_tiers SET 
+        $duration_days = (int)$duration_months * 30;
+        $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_subscription_tiers SET
                 tier_name = '".$db->escape($tier_name)."',
                 tier_type = '".$db->escape($tier_type)."',
                 duration_months = ".(int)$duration_months.",
+                duration_days = ".(int)$duration_days.",
                 price = ".(float)$price.",
                 description = '".$db->escape($description)."',
                 benefits = '".$db->escape($benefits)."'

@@ -173,7 +173,7 @@ print '</div>';
 print '<div class="stat-card" style="border-left: 4px solid #3b82f6;">';
 print '<div style="font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase;">Active Subscribers</div>';
 print '<div style="font-size: 28px; font-weight: 800; color: #1e293b; margin: 5px 0;">'.number_format($subscribers).'</div>';
-print '<div style="font-size: 12px; color: #3b82f6;">👥 Beneficiaries</div>';
+print '<div style="font-size: 12px; color: #3b82f6;">👥 Subscribers</div>';
 print '</div>';
 
 // 3. Inventory Action

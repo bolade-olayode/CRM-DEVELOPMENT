@@ -143,10 +143,10 @@ print '<div style="margin-bottom: 30px; display: flex; justify-content: flex-end
 print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'">';
 print '<select name="status" class="filter-select" onchange="this.form.submit()">';
 print '<option value="">Show All Orders</option>';
+print '<option value="Pending" '.($status_filter == 'Pending' ? 'selected' : '').'>⚪ Pending</option>';
 print '<option value="Prepared" '.($status_filter == 'Prepared' ? 'selected' : '').'>🟡 Prepared</option>';
-print '<option value="Packed" '.($status_filter == 'Packed' ? 'selected' : '').'>🔵 Packed</option>';
-print '<option value="Ready" '.($status_filter == 'Ready' ? 'selected' : '').'>🟣 Ready for Pickup</option>';
-print '<option value="Collected" '.($status_filter == 'Collected' ? 'selected' : '').'>🟠 Collected</option>';
+print '<option value="Bundled" '.($status_filter == 'Bundled' ? 'selected' : '').'>🔵 Bundled</option>';
+print '<option value="In Transit" '.($status_filter == 'In Transit' ? 'selected' : '').'>🟣 In Transit</option>';
 print '<option value="Delivered" '.($status_filter == 'Delivered' ? 'selected' : '').'>🟢 Delivered</option>';
 print '</select>';
 print '</form>';
@@ -175,12 +175,11 @@ if ($resql) {
         while ($obj = $db->fetch_object($resql)) {
             // Status Logic
             $status_colors = array(
-                'Prepared' => '#ffc107', // Yellow
-                'Packed' => '#17a2b8',   // Teal
-                'Ready' => '#6f42c1',    // Purple
-                'Collected' => '#fd7e14',// Orange
-                'Delivered' => '#28a745', // Green
-                'Pending' => '#6c757d'   // Grey
+                'Pending' => '#6c757d',    // Grey
+                'Prepared' => '#ffc107',   // Yellow
+                'Bundled' => '#17a2b8',    // Teal
+                'In Transit' => '#6f42c1', // Purple
+                'Delivered' => '#28a745',  // Green
             );
             $bg_color = $status_colors[$obj->status] ?? '#6c757d';
             

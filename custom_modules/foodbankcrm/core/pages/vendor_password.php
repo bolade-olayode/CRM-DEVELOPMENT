@@ -33,9 +33,9 @@ $msg = '';
 
 // 3. HANDLE FORM SUBMISSION
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['savepass'])) {
-    $pass_old = GETPOST('pass_old', 'alpha');
-    $pass_new = GETPOST('pass_new', 'alpha');
-    $pass_new2 = GETPOST('pass_new2', 'alpha');
+    $pass_old = GETPOST('pass_old', 'none');
+    $pass_new = GETPOST('pass_new', 'none');
+    $pass_new2 = GETPOST('pass_new2', 'none');
 
     // Verification
     if (empty($pass_old)) $error = "Current password is required";

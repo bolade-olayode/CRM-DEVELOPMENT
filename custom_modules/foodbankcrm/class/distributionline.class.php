@@ -101,9 +101,11 @@ class DistributionLine extends CommonObject
             $line = new DistributionLine($db);
             $line->id = $obj->rowid;
             $line->fk_distribution = $obj->fk_distribution;
+            $line->fk_donation = $obj->fk_donation;
             $line->product_name = $obj->product_name;
             $line->quantity = $obj->quantity;
             $line->unit = $obj->unit;
+            $line->note = $obj->note;
             $line->donation_ref = $obj->donation_ref;
             $lines[] = $line;
         }
