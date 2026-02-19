@@ -146,17 +146,12 @@ print '</div>';
 
 print '</div></form>';
 
-// Handle Add to Cart
+// Handle Add to Cart — redirects to add_to_cart.php (DB-based cart)
 if (isset($_GET['add_id'])) {
-    if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
     $pkg_id = (int)$_GET['add_id'];
-    $qty = (int)$_GET['qty'];
-    
-    if (isset($_SESSION['cart'][$pkg_id])) $_SESSION['cart'][$pkg_id] += $qty;
-    else $_SESSION['cart'][$pkg_id] = $qty;
-    
-    print '<div style="position:fixed; top:20px; right:20px; background:#28a745; color:white; padding:15px 25px; border-radius:8px; z-index:9999; box-shadow:0 5px 20px rgba(0,0,0,0.2);">✅ Added to Cart!</div>';
-    print '<script>setTimeout(function(){ window.location.href="product_catalog.php"; }, 1000);</script>';
+    $qty = max(1, (int)$_GET['qty']);
+    header('Location: add_to_cart.php?id='.$pkg_id.'&quantity='.$qty);
+    exit;
 }
 
 // Query Packages

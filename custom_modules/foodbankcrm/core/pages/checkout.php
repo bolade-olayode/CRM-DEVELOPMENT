@@ -37,32 +37,35 @@ if (!$subscriber_id) {
     accessforbidden('You must be a subscriber to checkout.');
 }
 
-// --- FETCH CART ---
+// --- FETCH CART FROM DB ---
 $cart_items = array();
 $grand_total = 0;
 
-if (!empty($_SESSION['cart'])) {
-    foreach ($_SESSION['cart'] as $pkg_id => $qty) {
-        $sql = "SELECT rowid, name, ref, description FROM ".MAIN_DB_PREFIX."foodbank_packages WHERE rowid = ".(int)$pkg_id;
-        $res = $db->query($sql);
-        if ($obj = $db->fetch_object($res)) {
-            // Calculate real price from package items
-            $sql_price = "SELECT SUM(pi.quantity * pi.unit_price) as total_price FROM ".MAIN_DB_PREFIX."foodbank_package_items pi WHERE pi.fk_package = ".(int)$pkg_id;
-            $res_price = $db->query($sql_price);
-            $obj_price = $db->fetch_object($res_price);
-            $unit_price = ($obj_price && $obj_price->total_price) ? (float)$obj_price->total_price : 0;
-            $line_total = $unit_price * $qty;
-            
-            $item = new stdClass();
-            $item->fk_package = $pkg_id;
-            $item->package_name = $obj->name;
-            $item->quantity = $qty;
-            $item->unit_price = $unit_price;
-            $item->line_total = $line_total;
-            
-            $cart_items[] = $item;
-            $grand_total += $line_total;
-        }
+$sql_cart = "SELECT c.fk_package, c.quantity, c.unit_price,
+             p.name, p.ref,
+             SUM(pi.quantity * pi.unit_price) as calculated_price
+             FROM ".MAIN_DB_PREFIX."foodbank_cart c
+             LEFT JOIN ".MAIN_DB_PREFIX."foodbank_packages p ON c.fk_package = p.rowid
+             LEFT JOIN ".MAIN_DB_PREFIX."foodbank_package_items pi ON p.rowid = pi.fk_package
+             WHERE c.fk_subscriber = ".(int)$subscriber_id."
+             GROUP BY c.fk_package, c.quantity, c.unit_price, p.name, p.ref";
+$res_cart = $db->query($sql_cart);
+
+if ($res_cart) {
+    while ($obj = $db->fetch_object($res_cart)) {
+        $unit_price = ($obj->calculated_price > 0) ? (float)$obj->calculated_price : (float)$obj->unit_price;
+        $qty = (int)$obj->quantity;
+        $line_total = $unit_price * $qty;
+
+        $item = new stdClass();
+        $item->fk_package = $obj->fk_package;
+        $item->package_name = $obj->name;
+        $item->quantity = $qty;
+        $item->unit_price = $unit_price;
+        $item->line_total = $line_total;
+
+        $cart_items[] = $item;
+        $grand_total += $line_total;
     }
 }
 
@@ -182,9 +185,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         )";
                 if (!$db->query($sql_pay)) throw new Exception('DB Error (Pay): '.$db->lasterror());
                 
-                // 4. Clear Cart
-                unset($_SESSION['cart']);
+                // 4. Clear Cart (DB is source of truth, also clear session for safety)
                 $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_cart WHERE fk_subscriber = ".(int)$subscriber_id);
+                unset($_SESSION['cart']);
                 
                 $db->commit();
                 ob_end_clean();

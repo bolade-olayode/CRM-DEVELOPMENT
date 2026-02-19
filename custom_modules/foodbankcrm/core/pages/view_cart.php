@@ -14,43 +14,40 @@ if (!FoodbankPermissions::isBeneficiary($user, $db)) {
     accessforbidden('You do not have access to this page.');
 }
 
-// --- CART LOGIC ---
-
-// 1. Add to Cart
-if (isset($_POST['action']) && $_POST['action'] == 'add') {
-    $id = (int)$_POST['id'];
-    $qty = 1;
-    if (!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
-    
-    if (isset($_SESSION['cart'][$id])) $_SESSION['cart'][$id] += $qty;
-    else $_SESSION['cart'][$id] = $qty;
-    
-    header("Location: view_cart.php"); 
-    exit;
+// Get subscriber ID
+$sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+$res_ben = $db->query($sql_ben);
+if (!$res_ben || $db->num_rows($res_ben) == 0) {
+    accessforbidden('Beneficiary profile not found.');
 }
+$subscriber_id = (int)$db->fetch_object($res_ben)->rowid;
 
-// 2. Update Quantity (CSRF PROTECTED)
+// --- CART LOGIC (DB-based: foodbank_cart table) ---
+
+// 1. Update Quantity (CSRF PROTECTED)
 if (isset($_POST['update_qty'])) {
-    // Check Token
     if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
         setEventMessages("Security check failed. Please try again.", null, 'errors');
     } else {
         foreach ($_POST['qty'] as $id => $val) {
+            $id = (int)$id;
             $val = (int)$val;
-            if ($val > 0) $_SESSION['cart'][$id] = $val;
-            else unset($_SESSION['cart'][$id]);
+            if ($val > 0) {
+                $db->query("UPDATE ".MAIN_DB_PREFIX."foodbank_cart SET quantity = ".$val." WHERE fk_subscriber = ".$subscriber_id." AND fk_package = ".$id);
+            } else {
+                $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_cart WHERE fk_subscriber = ".$subscriber_id." AND fk_package = ".$id);
+            }
         }
         setEventMessages("Cart updated successfully", null, 'mesgs');
     }
-    // Refresh to clear post data
     header("Location: view_cart.php");
     exit;
 }
 
-// 3. Remove Item
+// 2. Remove Item
 if (isset($_GET['remove'])) {
     $id = (int)$_GET['remove'];
-    unset($_SESSION['cart'][$id]);
+    $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_cart WHERE fk_subscriber = ".$subscriber_id." AND fk_package = ".$id);
     header("Location: view_cart.php");
     exit;
 }
@@ -202,7 +199,19 @@ print '<div style="display:flex; justify-content:space-between; align-items:cent
         <a href="dashboard_beneficiary.php" class="button" style="background:#eee; color:#333; padding:10px 20px; border-radius:20px; text-decoration:none;">Back to Dashboard</a>
        </div>';
 
-if (empty($_SESSION['cart'])) {
+// Fetch cart from DB
+$sql_cart = "SELECT c.rowid, c.fk_package, c.quantity, c.unit_price,
+             p.name, p.description,
+             SUM(pi.quantity * pi.unit_price) as calculated_price
+             FROM ".MAIN_DB_PREFIX."foodbank_cart c
+             LEFT JOIN ".MAIN_DB_PREFIX."foodbank_packages p ON c.fk_package = p.rowid
+             LEFT JOIN ".MAIN_DB_PREFIX."foodbank_package_items pi ON p.rowid = pi.fk_package
+             WHERE c.fk_subscriber = ".$subscriber_id."
+             GROUP BY c.rowid, c.fk_package, c.quantity, c.unit_price, p.name, p.description";
+$res_cart = $db->query($sql_cart);
+$cart_count = $res_cart ? $db->num_rows($res_cart) : 0;
+
+if ($cart_count == 0) {
     print '<div style="text-align:center; padding:80px; background:white; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
             <div style="font-size:80px; margin-bottom:20px;">🕸️</div>
             <h2 style="color:#555;">Your cart is empty</h2>
@@ -211,61 +220,52 @@ if (empty($_SESSION['cart'])) {
            </div>';
 } else {
     print '<form method="POST" action="view_cart.php">';
-    // --- CSRF TOKEN ADDED HERE ---
     print '<input type="hidden" name="token" value="'.newToken().'">';
     print '<input type="hidden" name="update_qty" value="1">';
-    
+
     print '<div class="cart-card">';
     print '<table class="cart-table">';
     print '<thead><tr><th>Package Details</th><th>Quantity</th><th>Price</th><th>Total</th><th>Action</th></tr></thead>';
     print '<tbody>';
-    
+
     $total_cart = 0;
-    
-    foreach ($_SESSION['cart'] as $id => $qty) {
-        $sql = "SELECT rowid, name, description FROM ".MAIN_DB_PREFIX."foodbank_packages WHERE rowid = ".(int)$id;
-        $res = $db->query($sql);
-        if ($obj = $db->fetch_object($res)) {
-            // Calculate real price from package items
-            $sql_price = "SELECT SUM(pi.quantity * pi.unit_price) as total_price FROM ".MAIN_DB_PREFIX."foodbank_package_items pi WHERE pi.fk_package = ".(int)$id;
-            $res_price = $db->query($sql_price);
-            $obj_price = $db->fetch_object($res_price);
-            $price = ($obj_price && $obj_price->total_price) ? (float)$obj_price->total_price : 0;
-            $subtotal = $price * $qty;
-            $total_cart += $subtotal;
-            
-            print '<tr>';
-            print '<td>
-                    <div class="cart-img">📦</div>
-                    <div style="font-weight:bold; color:#333;">'.dol_escape_htmltag($obj->name).'</div>
-                    <div style="font-size:12px; color:#888;">Ref: PKG-'.str_pad($obj->rowid, 4, '0', STR_PAD_LEFT).'</div>
-                   </td>';
-            print '<td>
-                    <input type="number" name="qty['.$id.']" value="'.$qty.'" min="1" class="qty-input">
-                    <button type="submit" class="btn-update">Update</button>
-                   </td>';
-            print '<td>₦'.number_format($price).'</td>';
-            print '<td style="font-weight:bold; color:#2c3e50;">₦'.number_format($subtotal).'</td>';
-            print '<td><a href="view_cart.php?remove='.$id.'" class="btn-remove">Remove</a></td>';
-            print '</tr>';
-        }
+
+    while ($obj = $db->fetch_object($res_cart)) {
+        $price = ($obj->calculated_price > 0) ? (float)$obj->calculated_price : (float)$obj->unit_price;
+        $qty = (int)$obj->quantity;
+        $subtotal = $price * $qty;
+        $total_cart += $subtotal;
+
+        print '<tr>';
+        print '<td>
+                <div class="cart-img">📦</div>
+                <div style="font-weight:bold; color:#333;">'.dol_escape_htmltag($obj->name).'</div>
+                <div style="font-size:12px; color:#888;">Ref: PKG-'.str_pad($obj->fk_package, 4, '0', STR_PAD_LEFT).'</div>
+               </td>';
+        print '<td>
+                <input type="number" name="qty['.$obj->fk_package.']" value="'.$qty.'" min="1" class="qty-input">
+                <button type="submit" class="btn-update">Update</button>
+               </td>';
+        print '<td>₦'.number_format($price).'</td>';
+        print '<td style="font-weight:bold; color:#2c3e50;">₦'.number_format($subtotal).'</td>';
+        print '<td><a href="view_cart.php?remove='.$obj->fk_package.'" class="btn-remove">Remove</a></td>';
+        print '</tr>';
     }
-    
+
     print '</tbody>';
     print '</table>';
-    
+
     print '<div class="total-row">';
     print 'Total Amount: <span style="font-size:28px; font-weight:800; color:#28a745; margin-left:15px;">₦'.number_format($total_cart).'</span>';
     print '</div>';
-    
-    print '</div>'; 
-    
+
+    print '</div>';
+
     print '<div style="margin-top:30px; display:flex; justify-content:space-between; align-items:center; padding:0 10px;">';
     print '<a href="product_catalog.php" class="btn-shop">← Continue Shopping</a>';
-    
-    // CHECKOUT BUTTON
+
     print '<button type="button" onclick="window.location.href=\'checkout.php\'" class="btn-checkout">Proceed to Checkout →</button>';
-    
+
     print '</div>';
     print '</form>';
 }
