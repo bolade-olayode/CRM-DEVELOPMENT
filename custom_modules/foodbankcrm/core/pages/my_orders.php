@@ -140,7 +140,7 @@ print '</div>';
 
 // --- FILTER BAR ---
 print '<div style="margin-bottom: 30px; display: flex; justify-content: flex-end;">';
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="GET" action="'.basename(__FILE__).'">';
 print '<select name="status" class="filter-select" onchange="this.form.submit()">';
 print '<option value="">Show All Orders</option>';
 print '<option value="Pending" '.($status_filter == 'Pending' ? 'selected' : '').'>⚪ Pending</option>';

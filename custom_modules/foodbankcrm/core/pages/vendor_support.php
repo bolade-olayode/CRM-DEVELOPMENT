@@ -174,7 +174,7 @@ if (!$is_admin) {
     print '<div class="card">';
     print '<h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;">📝 Open New Ticket</h3>';
     
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+    print '<form method="POST" action="'.basename(__FILE__).'">';
     print '<input type="hidden" name="action" value="create">';
     
     print '<div class="form-group"><label class="form-label">Subject</label><input type="text" name="subject" class="form-control" required placeholder="Brief summary..."></div>';
@@ -259,7 +259,7 @@ if ($db->num_rows($res) > 0) {
         // --- ADMIN ACTION AREA ---
         if ($is_admin) {
             print '<div style="margin-top:15px; padding-top:10px; border-top:1px dashed #ddd;">';
-            print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+            print '<form method="POST" action="'.basename(__FILE__).'">';
             print '<input type="hidden" name="action" value="update">';
             print '<input type="hidden" name="ticket_id" value="'.$ticket->rowid.'">';
             

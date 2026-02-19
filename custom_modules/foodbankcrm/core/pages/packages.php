@@ -1,6 +1,11 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/package.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Manage Packages');

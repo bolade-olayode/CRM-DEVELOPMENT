@@ -44,10 +44,14 @@ if (isset($_POST['update_qty'])) {
     exit;
 }
 
-// 2. Remove Item
+// 2. Remove Item (CSRF protected)
 if (isset($_GET['remove'])) {
-    $id = (int)$_GET['remove'];
-    $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_cart WHERE fk_subscriber = ".$subscriber_id." AND fk_package = ".$id);
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        setEventMessages("Security check failed. Please try again.", null, 'errors');
+    } else {
+        $id = (int)$_GET['remove'];
+        $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_cart WHERE fk_subscriber = ".$subscriber_id." AND fk_package = ".$id);
+    }
     header("Location: view_cart.php");
     exit;
 }
@@ -248,7 +252,7 @@ if ($cart_count == 0) {
                </td>';
         print '<td>₦'.number_format($price).'</td>';
         print '<td style="font-weight:bold; color:#2c3e50;">₦'.number_format($subtotal).'</td>';
-        print '<td><a href="view_cart.php?remove='.$obj->fk_package.'" class="btn-remove">Remove</a></td>';
+        print '<td><a href="view_cart.php?remove='.$obj->fk_package.'&token='.newToken().'" class="btn-remove">Remove</a></td>';
         print '</tr>';
     }
 

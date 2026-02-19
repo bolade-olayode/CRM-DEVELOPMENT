@@ -4,7 +4,12 @@
  * Matches DB Columns: gender, dob, city, state, family_size, employment_status, identification_number
  */
 require_once dirname(__DIR__, 4) . '/main.inc.php';
-require_once dirname(__DIR__, 3) . '/foodbankcrm/class/beneficiary.class.php'; 
+require_once dirname(__DIR__, 3) . '/foodbankcrm/class/beneficiary.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $id = GETPOST('id', 'int');
 if (!$id) accessforbidden();

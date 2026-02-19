@@ -228,7 +228,7 @@ print '</tbody></table></div>';
 
 print '<div class="card">';
 print '<h3 style="margin: 0 0 20px 0; border-bottom:1px solid #eee; padding-bottom:10px;">🚚 Delivery Details</h3>';
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<div style="margin-bottom: 15px;"><label style="display: block; margin-bottom: 8px; font-weight: bold;">Delivery Address <span style="color:red">*</span></label>';
 print '<textarea name="delivery_address" rows="3" required class="form-control">'.dol_escape_htmltag($subscriber->address).'</textarea></div>';

@@ -127,7 +127,7 @@ print '<a href="dashboard_beneficiary.php" class="button" style="background:#eee
 print '</div>';
 
 // Search & Sort Bar
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" class="search-box">';
+print '<form method="GET" action="'.basename(__FILE__).'" class="search-box">';
 print '<div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 20px; align-items: end;">';
 
 print '<div><label style="display: block; margin-bottom: 8px; font-weight: bold; color:#555;">Search packages</label>';
@@ -141,7 +141,7 @@ print '</select></div>';
 
 print '<div style="display: flex; gap: 10px;">';
 print '<button type="submit" class="btn-search">SEARCH</button>';
-print '<a href="'.$_SERVER['PHP_SELF'].'" class="btn-clear">CLEAR</a>';
+print '<a href="'.basename(__FILE__).'" class="btn-clear">CLEAR</a>';
 print '</div>';
 
 print '</div></form>';

@@ -1,6 +1,12 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/warehouse.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
+
 $langs->load("admin");
 llxHeader();
 
@@ -30,7 +36,7 @@ print '<div><a href="warehouses.php">← Back to Warehouses</a></div><br>';
 ?>
 
 <h2>Create Warehouse</h2>
-<form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
+<form method="POST" action="<?php echo basename(__FILE__); ?>">
   <input type="hidden" name="token" value="<?php echo newToken(); ?>">
   <table class="border centpercent">
     <tr>

@@ -143,7 +143,7 @@ print $msg;
 
 // FORM CARD
 print '<div class="auth-card">';
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 
 print '<div class="form-group">';

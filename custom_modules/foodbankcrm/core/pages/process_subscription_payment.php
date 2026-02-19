@@ -34,8 +34,12 @@ $sql_tier = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE t
 $res_tier = $db->query($sql_tier);
 $tier = $db->fetch_object($res_tier);
 
-// Paystack Key (PUBLIC KEY) - Ensure this matches your dashboard!
-$paystack_public_key = trim('pk_test_27e3e802c6afc73a7b4cadb65254648a9cebd6dc'); 
+// Paystack public key from config
+$paystack_public_key = getDolGlobalString('FOODBANK_PAYSTACK_PUBLIC_KEY');
+if (empty($paystack_public_key)) {
+    print '<div class="error">Paystack is not configured. Please contact the administrator.</div>';
+    llxFooter(); exit;
+}
 
 llxHeader('', 'Payment');
 

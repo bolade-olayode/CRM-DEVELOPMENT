@@ -22,10 +22,23 @@ if (!$user_is_beneficiary) {
 
 $order_id = GETPOST('id', 'int');
 
-// Get order details
-$sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distributions WHERE rowid = ".(int)$order_id;
+// Get subscriber ID for ownership check
+$sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+$res_ben = $db->query($sql_ben);
+if (!$res_ben || $db->num_rows($res_ben) == 0) {
+    accessforbidden('Beneficiary profile not found.');
+}
+$subscriber_id = (int)$db->fetch_object($res_ben)->rowid;
+
+// Get order details — only if it belongs to this subscriber
+$sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distributions WHERE rowid = ".(int)$order_id." AND fk_beneficiary = ".$subscriber_id;
 $res = $db->query($sql);
 $order = $db->fetch_object($res);
+
+if (!$order) {
+    header('Location: dashboard_beneficiary.php');
+    exit;
+}
 
 llxHeader('', 'Order Successful');
 

@@ -1,6 +1,11 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/donation.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Manage Donations');
@@ -141,7 +146,7 @@ print '</div>';
 
 // 4. Filter Form
 print '<div class="filter-box">';
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="display: flex; gap: 15px; align-items: flex-end;">';
+print '<form method="GET" action="'.basename(__FILE__).'" style="display: flex; gap: 15px; align-items: flex-end;">';
 
 print '<div style="flex:1;"><label style="font-size:12px; color:#666; font-weight:bold;">Filter by Status</label>';
 print '<select name="filter_status" class="flat" style="width:100%; margin-top:5px; padding:8px;">';
@@ -163,7 +168,7 @@ print '</select></div>';
 
 print '<div><input type="submit" class="button" value="Apply Filters" style="padding: 10px 20px;"></div>';
 if ($filter_status || $filter_vendor) {
-    print '<div><a href="'.$_SERVER['PHP_SELF'].'" class="button" style="background:#eee; color:#333; padding: 10px 20px;">Clear</a></div>';
+    print '<div><a href="'.basename(__FILE__).'" class="button" style="background:#eee; color:#333; padding: 10px 20px;">Clear</a></div>';
 }
 print '</form></div>';
 
@@ -216,7 +221,7 @@ if (count($donations_data) > 0) {
         
         // Inline Status Changer
         print '<td>';
-        print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" style="margin:0; display:flex; align-items:center gap:5px;">';
+        print '<form method="POST" action="'.basename(__FILE__).'" style="margin:0; display:flex; align-items:center gap:5px;">';
         print '<input type="hidden" name="token" value="'.newToken().'">';
         print '<input type="hidden" name="id" value="'.$row->rowid.'">';
         print '<select name="status" class="flat" onchange="this.form.submit()" style="font-size:12px; padding:4px; border-radius:4px; border:1px solid #ddd; background:#f8f9fa;">';

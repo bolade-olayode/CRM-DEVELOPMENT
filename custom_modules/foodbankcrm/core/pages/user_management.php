@@ -69,27 +69,35 @@ if ($action == 'link_beneficiary' && $_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Unlink user from vendor
+// Unlink user from vendor (CSRF protected)
 if ($action == 'unlink_vendor') {
-    $link_id = GETPOST('id', 'int');
-    
-    $sql = "DELETE FROM ".MAIN_DB_PREFIX."foodbank_user_vendor WHERE rowid = ".(int)$link_id;
-    if ($db->query($sql)) {
-        $notice = '<div class="ok">User unlinked from vendor.</div>';
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        $notice = '<div class="error">Security check failed. Please try again.</div>';
     } else {
-        $notice = '<div class="error">Error: '.$db->lasterror().'</div>';
+        $link_id = GETPOST('id', 'int');
+
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."foodbank_user_vendor WHERE rowid = ".(int)$link_id;
+        if ($db->query($sql)) {
+            $notice = '<div class="ok">User unlinked from vendor.</div>';
+        } else {
+            $notice = '<div class="error">Error: '.$db->lasterror().'</div>';
+        }
     }
 }
 
-// Unlink user from beneficiary
+// Unlink user from beneficiary (CSRF protected)
 if ($action == 'unlink_beneficiary') {
-    $link_id = GETPOST('id', 'int');
-    
-    $sql = "DELETE FROM ".MAIN_DB_PREFIX."foodbank_user_beneficiary WHERE rowid = ".(int)$link_id;
-    if ($db->query($sql)) {
-        $notice = '<div class="ok">User unlinked from beneficiary.</div>';
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        $notice = '<div class="error">Security check failed. Please try again.</div>';
     } else {
-        $notice = '<div class="error">Error: '.$db->lasterror().'</div>';
+        $link_id = GETPOST('id', 'int');
+
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."foodbank_user_beneficiary WHERE rowid = ".(int)$link_id;
+        if ($db->query($sql)) {
+            $notice = '<div class="ok">User unlinked from beneficiary.</div>';
+        } else {
+            $notice = '<div class="error">Error: '.$db->lasterror().'</div>';
+        }
     }
 }
 
@@ -173,7 +181,7 @@ print '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; mar
 print '<div class="fb-card">';
 print '<div class="fb-card-header">🏢 Link User to Vendor</div>';
 
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="link_vendor">';
 
@@ -212,7 +220,7 @@ print '</div>';
 print '<div class="fb-card">';
 print '<div class="fb-card-header">👤 Link User to Beneficiary</div>';
 
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="action" value="link_beneficiary">';
 
@@ -266,7 +274,7 @@ if (count($vendor_links) > 0) {
         print '<td>'.dol_escape_htmltag($link->login).'</td>';
         print '<td>'.dol_escape_htmltag($link->vendor_name).'</td>';
         print '<td>'.dol_print_date($db->jdate($link->date_created), 'day').'</td>';
-        print '<td><a href="'.$_SERVER['PHP_SELF'].'?action=unlink_vendor&id='.$link->rowid.'" onclick="return confirm(\'Unlink this user?\');" style="color: #dc3545;">Unlink</a></td>';
+        print '<td><a href="user_management.php?action=unlink_vendor&id='.$link->rowid.'&token='.newToken().'" onclick="return confirm(\'Unlink this user?\');" style="color: #dc3545;">Unlink</a></td>';
         print '</tr>';
     }
     
@@ -291,7 +299,7 @@ if (count($beneficiary_links) > 0) {
         print '<td>'.dol_escape_htmltag($link->login).'</td>';
         print '<td>'.dol_escape_htmltag($link->beneficiary_name).'</td>';
         print '<td>'.dol_print_date($db->jdate($link->date_created), 'day').'</td>';
-        print '<td><a href="'.$_SERVER['PHP_SELF'].'?action=unlink_beneficiary&id='.$link->rowid.'" onclick="return confirm(\'Unlink this user?\');" style="color: #dc3545;">Unlink</a></td>';
+        print '<td><a href="user_management.php?action=unlink_beneficiary&id='.$link->rowid.'&token='.newToken().'" onclick="return confirm(\'Unlink this user?\');" style="color: #dc3545;">Unlink</a></td>';
         print '</tr>';
     }
     

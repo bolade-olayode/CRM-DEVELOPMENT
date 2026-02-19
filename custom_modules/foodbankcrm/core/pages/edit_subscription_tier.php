@@ -71,7 +71,7 @@ print '<div><a href="subscription_tiers.php">← Back to Subscription Tiers</a><
 
 <h2>Edit Subscription Tier</h2>
 
-<form method="POST" action="<?php echo $_SERVER['PHP_SELF'].'?id='.$tier_id; ?>">
+<form method="POST" action="<?php echo basename(__FILE__).'?id='.$tier_id; ?>">
     <input type="hidden" name="token" value="<?php echo newToken(); ?>">
     
     <table class="border centpercent">

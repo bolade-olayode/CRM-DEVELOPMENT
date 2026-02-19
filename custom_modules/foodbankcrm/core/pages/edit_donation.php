@@ -1,6 +1,11 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/donation.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Edit Donation');
@@ -82,7 +87,7 @@ print $notice;
 
 if (!$hide_form) {
     print '<div class="fb-card">';
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.(int)$d->id.'">';
+    print '<form method="POST" action="'.basename(__FILE__).'?id='.(int)$d->id.'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
 
     print '<h3 style="margin: 0 0 25px 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">📦 Product Details</h3>';

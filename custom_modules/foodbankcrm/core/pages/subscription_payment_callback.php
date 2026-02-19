@@ -20,8 +20,10 @@ if (empty($reference) || empty($tier_type)) {
 }
 
 // 2. Verify with Paystack
-// 🔴 FIXED: Added the underscore (_) between sk_test and the numbers
-$paystack_secret_key = 'sk_test_24845eca974e163568aa6dd497590551e1ad2260'; 
+$paystack_secret_key = getDolGlobalString('FOODBANK_PAYSTACK_SECRET_KEY');
+if (empty($paystack_secret_key)) {
+    printErrorPage('Paystack is not configured. Contact admin.');
+}
 
 $curl = curl_init();
 curl_setopt_array($curl, array(

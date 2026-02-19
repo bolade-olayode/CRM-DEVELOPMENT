@@ -171,7 +171,7 @@ print $notice;
 
 if (!$hide_form) {
     print '<div class="fb-card">';
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+    print '<form method="POST" action="'.basename(__FILE__).'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
 
     print '<h3 style="margin: 0 0 25px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #2c3e50;">📋 Product Details</h3>';

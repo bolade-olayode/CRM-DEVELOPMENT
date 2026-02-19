@@ -2,6 +2,11 @@
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/distribution.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/distributionline.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 // --- LOGIC FIRST ---
 $id = GETPOST('id', 'int');
@@ -10,12 +15,16 @@ if (!$id) { header("Location: distributions.php"); exit; }
 $d = new Distribution($db);
 if ($d->fetch($id) <= 0) { accessforbidden("Distribution not found"); }
 
-// Handle Delete Item
+// Handle Delete Item (CSRF protected)
 if (isset($_GET['del_line'])) {
-    $line = new DistributionLine($db);
-    $line->id = (int)$_GET['del_line'];
-    $line->fetch($line->id);
-    $line->delete($user);
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        setEventMessages("Security check failed. Please try again.", null, 'errors');
+    } else {
+        $line = new DistributionLine($db);
+        $line->id = (int)$_GET['del_line'];
+        $line->fetch($line->id);
+        $line->delete($user);
+    }
     header("Location: edit_distribution.php?id=".$id); exit;
 }
 
@@ -65,7 +74,7 @@ print '<div class="fb-container">';
 print '<div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h1>✏️ Edit Shipment #'.$d->ref.'</h1><a href="view_distribution.php?id='.$id.'" class="button" style="background:#eee; color:#333;">Cancel</a></div>';
 
 print '<div class="fb-card">';
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$id.'">';
+print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 
 // Status & Payment
@@ -86,7 +95,7 @@ if (count($lines) > 0) {
         print '<td>'.dol_escape_htmltag($line->product_name).'</td>';
         print '<td>'.dol_escape_htmltag($line->donation_ref).'</td>';
         print '<td>'.number_format($line->quantity).' '.$line->unit.'</td>';
-        print '<td><a href="edit_distribution.php?id='.$id.'&del_line='.$line->id.'" style="color:red; font-size:12px; font-weight:bold;" onclick="return confirm(\'Remove this item? Stock will be restored.\')">Remove</a></td>';
+        print '<td><a href="edit_distribution.php?id='.$id.'&del_line='.$line->id.'&token='.newToken().'" style="color:red; font-size:12px; font-weight:bold;" onclick="return confirm(\'Remove this item? Stock will be restored.\')">Remove</a></td>';
         print '</tr>';
     }
 } else {

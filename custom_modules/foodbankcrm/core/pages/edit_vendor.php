@@ -5,6 +5,11 @@
  */
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/vendor.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Edit Vendor');
@@ -90,7 +95,7 @@ print $notice;
 
 if (!$hide_form) {
     print '<div class="fb-card">';
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.(int)$v->id.'">';
+    print '<form method="POST" action="'.basename(__FILE__).'?id='.(int)$v->id.'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
 
     // SECTION 1: BUSINESS INFO

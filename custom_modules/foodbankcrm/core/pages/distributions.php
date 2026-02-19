@@ -1,6 +1,11 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/distribution.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Logistics Center');
@@ -73,7 +78,7 @@ if ($res && $db->num_rows($res) > 0) {
         print '<td><span class="status-badge '.$s_class.'">'.$obj->status.'</span></td>';
         
         print '<td style="text-align: right;">';
-        print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" style="display:inline;">';
+        print '<form method="POST" action="'.basename(__FILE__).'" style="display:inline;">';
         print '<input type="hidden" name="token" value="'.newToken().'"><input type="hidden" name="id" value="'.$obj->rowid.'">';
         if ($obj->status == 'Prepared') print '<button name="action" value="ship" class="button small" style="background:#007bff; color:white; border:none; margin-right:5px;">Dispatch</button>';
         elseif ($obj->status == 'In Transit') print '<button name="action" value="deliver" class="button small" style="background:#28a745; color:white; border:none; margin-right:5px;">Confirm</button>';

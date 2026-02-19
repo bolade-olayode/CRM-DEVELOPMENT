@@ -76,7 +76,7 @@ print $msg;
 
 // FORM
 print '<div style="background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">';
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 
 print '<div style="margin-bottom: 20px;">';

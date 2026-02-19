@@ -4,6 +4,11 @@ require_once dirname(__DIR__, 3) . '/foodbankcrm/class/distribution.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/distributionline.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/package.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/packageitem.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 // --- LOGIC: HANDLE SUBMISSION ---
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['create_distribution'])) {
@@ -109,7 +114,7 @@ print '<a href="distributions.php" class="button" style="background:#eee; color:
 print '</div>';
 
 print '<div class="fb-card">';
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="create_distribution" value="1">';
 

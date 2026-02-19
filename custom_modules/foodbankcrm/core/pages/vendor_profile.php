@@ -132,7 +132,7 @@ print '<div>';
 print '<div class="form-card">';
 print '<h3 style="margin-top: 0; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; color: #2c3e50;">Business Details</h3>';
 
-print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+print '<form method="POST" action="'.basename(__FILE__).'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 
 // Business Name

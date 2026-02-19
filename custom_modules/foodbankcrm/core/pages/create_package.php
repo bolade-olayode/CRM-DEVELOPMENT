@@ -2,6 +2,11 @@
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/package.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/packageitem.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Create Package');
@@ -84,7 +89,7 @@ print $notice;
 
 if (!$hide_form) {
     print '<div class="fb-card">';
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+    print '<form method="POST" action="'.basename(__FILE__).'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
 
     print '<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">';

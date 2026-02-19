@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         print '<p style="color: #d32f2f; font-weight: bold; margin-top: 20px;">This action cannot be undone.</p>';
         print '</div>';
         
-        print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$tier_id.'">';
+        print '<form method="POST" action="'.basename(__FILE__).'?id='.$tier_id.'">';
         print '<input type="hidden" name="token" value="'.newToken().'">';
         print '<input class="button butActionDelete" type="submit" name="confirm" value="Yes, Delete This Tier">';
         print ' <a class="button" href="subscription_tiers.php">Cancel</a>';

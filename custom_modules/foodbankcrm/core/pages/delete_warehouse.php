@@ -2,6 +2,12 @@
 // delete_warehouses.php - FINAL VERSION
 
 require_once dirname(__DIR__, 4) . '/main.inc.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
+
 $langs->load("admin");
 llxHeader();
 
@@ -29,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     print '<p><strong>Address:</strong> '.dol_escape_htmltag($obj->address ?: '—').'</p>';
     print '</div>';
 
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$id.'">';
+    print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
     print '<input class="button butActionDelete" type="submit" value="Yes, delete">';
     print ' <a class="button" href="warehouses.php">Cancel</a>';

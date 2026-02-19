@@ -2,6 +2,11 @@
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/package.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/packageitem.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
 
 $langs->load("admin");
 llxHeader('', 'Edit Package');
@@ -18,11 +23,15 @@ $p->fetch($id);
 $notice = '';
 $hide_form = false;
 
-// Handle Item Deletion
+// Handle Item Deletion (CSRF protected)
 if (isset($_GET['del_item'])) {
-    $item = new PackageItem($db);
-    $item->id = (int)$_GET['del_item'];
-    $item->delete($user);
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        setEventMessages("Security check failed. Please try again.", null, 'errors');
+    } else {
+        $item = new PackageItem($db);
+        $item->id = (int)$_GET['del_item'];
+        $item->delete($user);
+    }
     header("Location: edit_package.php?id=".$id); exit;
 }
 
@@ -74,7 +83,7 @@ print $notice;
 
 if (!$hide_form) {
     print '<div class="fb-card">';
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$id.'">';
+    print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
 
     print '<div class="form-group"><label>Package Name</label><input type="text" name="name" value="'.dol_escape_htmltag($p->name).'" required></div>';
@@ -92,7 +101,7 @@ if (!$hide_form) {
             print '<td>'.number_format($i->quantity).'</td>';
             print '<td>'.$i->unit.'</td>';
             print '<td>₦'.number_format($i->unit_price,2).'</td>';
-            print '<td><a href="edit_package.php?id='.$id.'&del_item='.$i->rowid.'" style="color:red; font-size:12px;" onclick="return confirm(\'Remove this item?\')">Remove</a></td>';
+            print '<td><a href="edit_package.php?id='.$id.'&del_item='.$i->rowid.'&token='.newToken().'" style="color:red; font-size:12px;" onclick="return confirm(\'Remove this item?\')">Remove</a></td>';
             print '</tr>';
         }
         print '</tbody></table>';

@@ -99,7 +99,7 @@ print '</div>';
 
 // FILTER FORM (Hidden on Print)
 print '<div class="report-card no-print" style="display: flex; gap: 20px; align-items: center;">';
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="display: flex; gap: 15px; align-items: center; width: 100%;">';
+print '<form method="GET" action="'.basename(__FILE__).'" style="display: flex; gap: 15px; align-items: center; width: 100%;">';
 print '<strong style="font-size: 16px;">📅 Filter By:</strong>';
 
 // Year Dropdown

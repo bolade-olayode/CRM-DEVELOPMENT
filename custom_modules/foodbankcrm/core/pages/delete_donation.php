@@ -1,6 +1,12 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/donation.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
+
 $langs->load("admin");
 llxHeader('', 'Delete Donation');
 
@@ -62,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     print '<strong>Qty:</strong> '.number_format($d->quantity).' '.dol_escape_htmltag($d->unit);
     print '</div>';
 
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$id.'">';
+    print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
     
     print '<div class="btn-group">';

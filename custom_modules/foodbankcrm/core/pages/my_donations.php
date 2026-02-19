@@ -111,7 +111,7 @@ print '</div>'; // End Header
 // --- FILTER ---
 $filter_status = GETPOST('status', 'alpha');
 print '<div class="filter-box">';
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="display: flex; align-items: center;">';
+print '<form method="GET" action="'.basename(__FILE__).'" style="display: flex; align-items: center;">';
 print '<label style="font-weight: bold; color: #555;">Filter Status:</label>';
 print '<select name="status" class="filter-select" onchange="this.form.submit()">';
 print '<option value="">All Logs</option>';

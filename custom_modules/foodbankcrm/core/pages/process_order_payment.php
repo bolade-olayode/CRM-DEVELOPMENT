@@ -7,14 +7,27 @@ require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php'
 
 global $user, $db;
 
+// Permission check
+if (!FoodbankPermissions::isBeneficiary($user, $db)) {
+    accessforbidden('You do not have access to this page.');
+}
+
 $order_id = GETPOST('order_id', 'int');
 if (!$order_id) { header('Location: dashboard_beneficiary.php'); exit; }
 
-// Get order
+// Get subscriber ID for ownership check
+$sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+$res_ben = $db->query($sql_ben);
+if (!$res_ben || $db->num_rows($res_ben) == 0) {
+    accessforbidden('Beneficiary profile not found.');
+}
+$subscriber_id = (int)$db->fetch_object($res_ben)->rowid;
+
+// Get order — only if it belongs to this subscriber
 $sql = "SELECT d.*, b.firstname, b.lastname, b.email, b.phone
         FROM ".MAIN_DB_PREFIX."foodbank_distributions d
         INNER JOIN ".MAIN_DB_PREFIX."foodbank_beneficiaries b ON d.fk_beneficiary = b.rowid
-        WHERE d.rowid = ".(int)$order_id;
+        WHERE d.rowid = ".(int)$order_id." AND d.fk_beneficiary = ".$subscriber_id;
 $res = $db->query($sql);
 $order = $db->fetch_object($res);
 
@@ -24,8 +37,12 @@ if (!$order) { header('Location: dashboard_beneficiary.php'); exit; }
 $sql_items = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distribution_lines WHERE fk_distribution = ".(int)$order_id;
 $res_items = $db->query($sql_items);
 
-// YOUR PAYSTACK KEY
-$paystack_public_key = 'pk_test_27e3e802c6afc73a7b4cadb65254648a9cebd6dc';
+// Paystack public key from config
+$paystack_public_key = getDolGlobalString('FOODBANK_PAYSTACK_PUBLIC_KEY');
+if (empty($paystack_public_key)) {
+    print '<div class="error">Paystack is not configured. Please contact the administrator.</div>';
+    llxFooter(); exit;
+}
 
 llxHeader('', 'Complete Payment');
 

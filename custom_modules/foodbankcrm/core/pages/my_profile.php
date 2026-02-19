@@ -169,9 +169,9 @@ print '</div>';
 // Right side actions
 print '<div style="display:flex; align-items:center;">';
 if ($mode == 'edit') {
-    print '<a href="'.$_SERVER['PHP_SELF'].'" class="btn-outline">Cancel</a>';
+    print '<a href="'.basename(__FILE__).'" class="btn-outline">Cancel</a>';
 } else {
-    print '<a href="'.$_SERVER['PHP_SELF'].'?mode=edit" class="btn-edit">✏️ Edit Profile</a>';
+    print '<a href="'.basename(__FILE__).'?mode=edit" class="btn-edit">✏️ Edit Profile</a>';
 }
 // LOGOUT BUTTON
 print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="btn-logout"><span>🚪</span> Logout</a>';
@@ -188,7 +188,7 @@ print '<h3 style="margin: 0 0 25px 0; border-bottom: 1px solid #eee; padding-bot
 
 if ($mode == 'edit') {
     // === EDIT MODE (FORM) ===
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'">';
+    print '<form method="POST" action="'.basename(__FILE__).'">';
     print '<input type="hidden" name="action" value="update">';
     
     print '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';

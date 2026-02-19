@@ -14,30 +14,38 @@ llxHeader('', 'Subscription Tiers');
 $action = GETPOST('action', 'alpha');
 $notice = '';
 
-// Handle delete
+// Handle delete (CSRF protected)
 if ($action == 'delete' && GETPOST('id', 'int')) {
-    $id = GETPOST('id', 'int');
-    
-    $sql = "DELETE FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE rowid = ".(int)$id;
-    if ($db->query($sql)) {
-        $notice = '<div class="ok">Subscription tier deleted successfully!</div>';
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        $notice = '<div class="error">Security check failed. Please try again.</div>';
     } else {
-        $notice = '<div class="error">Error deleting tier: '.$db->lasterror().'</div>';
+        $id = GETPOST('id', 'int');
+
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE rowid = ".(int)$id;
+        if ($db->query($sql)) {
+            $notice = '<div class="ok">Subscription tier deleted successfully!</div>';
+        } else {
+            $notice = '<div class="error">Error deleting tier: '.$db->lasterror().'</div>';
+        }
     }
 }
 
-// Handle activate/deactivate
+// Handle activate/deactivate (CSRF protected)
 if ($action == 'toggle' && GETPOST('id', 'int')) {
-    $id = GETPOST('id', 'int');
-    
-    $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_subscription_tiers 
-            SET is_active = IF(is_active = 1, 0, 1) 
-            WHERE rowid = ".(int)$id;
-    
-    if ($db->query($sql)) {
-        $notice = '<div class="ok">Subscription tier status updated!</div>';
+    if (!isset($_GET['token']) || $_GET['token'] != $_SESSION['newtoken']) {
+        $notice = '<div class="error">Security check failed. Please try again.</div>';
     } else {
-        $notice = '<div class="error">Error: '.$db->lasterror().'</div>';
+        $id = GETPOST('id', 'int');
+
+        $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_subscription_tiers
+                SET is_active = IF(is_active = 1, 0, 1)
+                WHERE rowid = ".(int)$id;
+
+        if ($db->query($sql)) {
+            $notice = '<div class="ok">Subscription tier status updated!</div>';
+        } else {
+            $notice = '<div class="error">Error: '.$db->lasterror().'</div>';
+        }
     }
 }
 
@@ -82,7 +90,7 @@ if ($res && $db->num_rows($res) > 0) {
         print '</td>';
         print '<td class="center">';
         print '<a href="edit_subscription_tier.php?id='.$obj->rowid.'">Edit</a> | ';
-        print '<a href="'.$_SERVER['PHP_SELF'].'?action=toggle&id='.$obj->rowid.'">'.($obj->is_active ? 'Deactivate' : 'Activate').'</a> | ';
+        print '<a href="subscription_tiers.php?action=toggle&id='.$obj->rowid.'&token='.newToken().'">'.($obj->is_active ? 'Deactivate' : 'Activate').'</a> | ';
         print '<a href="delete_subscription_tier.php?id='.$obj->rowid.'" style="color: #dc3545;">Delete</a>';
         print '</td>';
         print '</tr>';

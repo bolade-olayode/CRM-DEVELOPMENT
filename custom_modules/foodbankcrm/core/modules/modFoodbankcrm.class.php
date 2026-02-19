@@ -50,6 +50,24 @@ class modFoodbankcrm extends DolibarrModules
         );
         $r++;
 
+        $this->const[$r] = array(
+            'name' => 'FOODBANK_PAYSTACK_PUBLIC_KEY',
+            'consttype' => 'chaine',
+            'value' => '',
+            'note' => 'Paystack public API key (pk_test_... or pk_live_...)',
+            'visible' => 0
+        );
+        $r++;
+
+        $this->const[$r] = array(
+            'name' => 'FOODBANK_PAYSTACK_SECRET_KEY',
+            'consttype' => 'chaine',
+            'value' => '',
+            'note' => 'Paystack secret API key (sk_test_... or sk_live_...)',
+            'visible' => 0
+        );
+        $r++;
+
 
         // =================================================================
         // 2. PERMISSIONS

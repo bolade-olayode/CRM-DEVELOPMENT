@@ -1,6 +1,12 @@
 <?php
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/distribution.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+if (!FoodbankPermissions::isAdmin($user)) {
+    accessforbidden('Administrator rights required.');
+}
+
 $langs->load("admin");
 llxHeader('', 'Delete Shipment');
 
@@ -21,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     print '<h2 style="color: #dc3545;">Delete Shipment?</h2>';
     print '<p>Are you sure you want to delete <strong>'.$d->ref.'</strong>?</p>';
     print '<p style="color: #666; font-size: 13px;">Note: This will restore the inventory allocated to this order.</p>';
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'?id='.$id.'">';
+    print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
     print '<div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">';
     print '<a href="distributions.php" class="button-cancel">Cancel</a>';

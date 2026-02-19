@@ -17,7 +17,7 @@ print '<h1>📦 Manage Orders</h1>';
 $filter_status = GETPOST('status', 'alpha');
 $search_query = GETPOST('search', 'alpha');
 
-print '<form method="GET" action="'.$_SERVER['PHP_SELF'].'" style="margin-bottom: 20px;">';
+print '<form method="GET" action="'.basename(__FILE__).'" style="margin-bottom: 20px;">';
 print '<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">';
 
 print '<input type="text" name="search" class="flat" placeholder="Search by ref, subscriber..." value="'.dol_escape_htmltag($search_query).'" style="min-width: 250px;">';
@@ -32,7 +32,7 @@ print '<option value="Delivered" '.($filter_status == 'Delivered' ? 'selected' :
 print '</select>';
 
 print '<button type="submit" class="button">Search</button>';
-print '<a href="'.$_SERVER['PHP_SELF'].'" class="button">Clear</a>';
+print '<a href="'.basename(__FILE__).'" class="button">Clear</a>';
 
 print '</div>';
 print '</form>';
