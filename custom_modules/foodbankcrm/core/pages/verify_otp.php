@@ -16,86 +16,138 @@ $action = GETPOST('action', 'alpha');
 $error = '';
 $success_msg = '';
 
-// --- RESEND LOGIC (Same as before) ---
-if ($action == 'resend') {
-    $otp = rand(100000, 999999);
-    $db->query("UPDATE " . MAIN_DB_PREFIX . "foodbank_email_verification SET code = '$otp', created_at = NOW() WHERE email = '" . $db->escape($email) . "'");
-    if ($db->affected_rows() == 0) {
-        $db->query("INSERT INTO " . MAIN_DB_PREFIX . "foodbank_email_verification (email, code) VALUES ('".$db->escape($email)."', '$otp')");
+$ip_address = $_SERVER['REMOTE_ADDR'];
+
+// --- Helper: Check brute-force lockout ---
+function isOtpLocked($db, $email, $ip_address) {
+    $max_attempts = 5;
+    $lockout_window = 900; // 15 minutes
+    $sql = "SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."foodbank_rate_limit
+            WHERE (ip_address = '".$db->escape($ip_address)."' OR ip_address = '".$db->escape($email)."')
+            AND action_type = 'otp_verify'
+            AND attempt_time > (NOW() - INTERVAL ".$lockout_window." SECOND)";
+    $res = $db->query($sql);
+    if ($res) {
+        $obj = $db->fetch_object($res);
+        return ($obj->cnt >= $max_attempts);
     }
-    $subject = "New Verification Code";
-    $msg = "Your new code is: $otp";
-    $mail = new CMailFile($subject, $email, 'no-reply@foodbank.com', $msg);
-    $mail->sendfile();
-    $success_msg = "✅ A new code has been sent to your email.";
+    return false;
 }
 
-// --- VERIFY LOGIC ---
-if ($action == 'verify') {
-    $code_input = GETPOST('code', 'alpha');
+function recordOtpAttempt($db, $email, $ip_address) {
+    $db->query("INSERT INTO ".MAIN_DB_PREFIX."foodbank_rate_limit (ip_address, action_type) VALUES ('".$db->escape($email)."', 'otp_verify')");
+    $db->query("INSERT INTO ".MAIN_DB_PREFIX."foodbank_rate_limit (ip_address, action_type) VALUES ('".$db->escape($ip_address)."', 'otp_verify')");
+}
 
-    $sql = "SELECT * FROM " . MAIN_DB_PREFIX . "foodbank_email_verification 
-            WHERE email = '" . $db->escape($email) . "' 
-            AND code = '" . $db->escape($code_input) . "'";
-    
-    $res = $db->query($sql);
-    
-    if ($res && $db->num_rows($res) > 0) {
-        $obj = $db->fetch_object($res);
-        
-        // Expiration Check (5 Mins)
-        if ((time() - strtotime($obj->created_at)) > 300) {
-            $error = "⌛ Code Expired. Please request a new one.";
-        } else {
-            $db->begin();
-            
-            // Find User ID
-            $sql_user = "SELECT rowid FROM ".MAIN_DB_PREFIX."user WHERE email = '".$db->escape($email)."' LIMIT 1";
-            $res_user = $db->query($sql_user);
-            $obj_user = $db->fetch_object($res_user);
+// --- RESEND LOGIC (Rate limited: max 3 per 10 min) ---
+if ($action == 'resend') {
+    // Check resend rate limit
+    $sql_resend = "SELECT COUNT(*) as cnt FROM ".MAIN_DB_PREFIX."foodbank_rate_limit
+                   WHERE ip_address = '".$db->escape($email)."' AND action_type = 'otp_resend'
+                   AND attempt_time > (NOW() - INTERVAL 600 SECOND)";
+    $res_resend = $db->query($sql_resend);
+    $resend_count = $res_resend ? (int)$db->fetch_object($res_resend)->cnt : 0;
 
-            if ($obj_user) {
-                $u = new User($db);
-                $u->fetch($obj_user->rowid);
-                $u->statut = 1; // Enable Account
-                $u->update($user);
-                
-                $db->query("DELETE FROM " . MAIN_DB_PREFIX . "foodbank_email_verification WHERE email = '" . $db->escape($email) . "'");
-                $db->commit();
-                
-                // Auto Login
-                $_SESSION["dol_login"] = $u->login;
-                $_SESSION["dol_entity"] = 1; 
-                $_SESSION["dol_authtype"] = 'form';
-                $_SESSION["foodbank_checked"] = true; 
-
-                // --- SMART ROUTING LOGIC ---
-                // 1. Check if Vendor
-                $sql_vend = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = " . $u->id;
-                $res_vend = $db->query($sql_vend);
-                if ($res_vend && $db->num_rows($res_vend) > 0) {
-                    header("Location: dashboard_vendor.php");
-                    exit;
-                }
-
-                // 2. Check if Subscriber
-                $sql_sub = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = " . $u->id;
-                $res_sub = $db->query($sql_sub);
-                if ($res_sub && $db->num_rows($res_sub) > 0) {
-                    header("Location: dashboard_beneficiary.php"); // Goes to dashboard (which handles payment logic)
-                    exit;
-                }
-
-                // 3. Fallback
-                header("Location: ../../index.php");
-                exit;
-
-            } else {
-                $error = "User account not found.";
-            }
-        }
+    if ($resend_count >= 3) {
+        $error = "Too many resend requests. Please wait 10 minutes.";
     } else {
-        $error = "❌ Invalid Verification Code.";
+        $otp = random_int(100000, 999999);
+        $db->query("UPDATE " . MAIN_DB_PREFIX . "foodbank_email_verification SET code = '".$db->escape($otp)."', created_at = NOW() WHERE email = '" . $db->escape($email) . "'");
+        if ($db->affected_rows() == 0) {
+            $db->query("INSERT INTO " . MAIN_DB_PREFIX . "foodbank_email_verification (email, code) VALUES ('".$db->escape($email)."', '".$db->escape($otp)."')");
+        }
+
+        // Track resend
+        $db->query("INSERT INTO ".MAIN_DB_PREFIX."foodbank_rate_limit (ip_address, action_type) VALUES ('".$db->escape($email)."', 'otp_resend')");
+
+        // Reset failed verification attempts on resend
+        $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_rate_limit WHERE ip_address = '".$db->escape($email)."' AND action_type = 'otp_verify'");
+
+        $subject = "New Verification Code";
+        $msg = "Your new code is: $otp";
+        $mail = new CMailFile($subject, $email, 'no-reply@foodbank.com', $msg);
+        $mail->sendfile();
+        $success_msg = "A new code has been sent to your email.";
+    }
+}
+
+// --- VERIFY LOGIC (Brute-force protected) ---
+if ($action == 'verify') {
+    if (isOtpLocked($db, $email, $ip_address)) {
+        $error = "Too many failed attempts. Please wait 15 minutes or request a new code.";
+    } else {
+        $code_input = GETPOST('code', 'alpha');
+
+        $sql = "SELECT * FROM " . MAIN_DB_PREFIX . "foodbank_email_verification
+                WHERE email = '" . $db->escape($email) . "'
+                AND code = '" . $db->escape($code_input) . "'";
+
+        $res = $db->query($sql);
+
+        if ($res && $db->num_rows($res) > 0) {
+            $obj = $db->fetch_object($res);
+
+            // Expiration Check (5 Mins)
+            if ((time() - strtotime($obj->created_at)) > 300) {
+                $error = "Code expired. Please request a new one.";
+            } else {
+                $db->begin();
+
+                // Find User ID
+                $sql_user = "SELECT rowid FROM ".MAIN_DB_PREFIX."user WHERE email = '".$db->escape($email)."' LIMIT 1";
+                $res_user = $db->query($sql_user);
+                $obj_user = $db->fetch_object($res_user);
+
+                if ($obj_user) {
+                    $u = new User($db);
+                    $u->fetch($obj_user->rowid);
+                    $u->statut = 1; // Enable Account
+                    $u->update($user);
+
+                    // Clean up: delete OTP and failed attempt records
+                    $db->query("DELETE FROM " . MAIN_DB_PREFIX . "foodbank_email_verification WHERE email = '" . $db->escape($email) . "'");
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_rate_limit WHERE ip_address = '".$db->escape($email)."' AND action_type IN ('otp_verify','otp_resend')");
+                    $db->commit();
+
+                    // Regenerate session to prevent session fixation
+                    session_regenerate_id(true);
+
+                    // Auto Login
+                    $_SESSION["dol_login"] = $u->login;
+                    $_SESSION["dol_entity"] = 1;
+                    $_SESSION["dol_authtype"] = 'form';
+                    $_SESSION["foodbank_checked"] = true;
+
+                    // --- SMART ROUTING LOGIC ---
+                    // 1. Check if Vendor
+                    $sql_vend = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = " . $u->id;
+                    $res_vend = $db->query($sql_vend);
+                    if ($res_vend && $db->num_rows($res_vend) > 0) {
+                        header("Location: dashboard_vendor.php");
+                        exit;
+                    }
+
+                    // 2. Check if Subscriber
+                    $sql_sub = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = " . $u->id;
+                    $res_sub = $db->query($sql_sub);
+                    if ($res_sub && $db->num_rows($res_sub) > 0) {
+                        header("Location: dashboard_beneficiary.php");
+                        exit;
+                    }
+
+                    // 3. Fallback
+                    header("Location: ../../index.php");
+                    exit;
+
+                } else {
+                    $error = "User account not found.";
+                }
+            }
+        } else {
+            // Record failed attempt
+            recordOtpAttempt($db, $email, $ip_address);
+            $error = "Invalid verification code.";
+        }
     }
 }
 ?>

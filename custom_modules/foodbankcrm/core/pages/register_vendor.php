@@ -109,7 +109,7 @@ if ($action == 'register' && empty($error)) {
                     
                     if ($db->query($sql)) {
                         // --- OTP GENERATION ---
-                        $otp = rand(100000, 999999);
+                        $otp = random_int(100000, 999999);
                         $db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."foodbank_email_verification (email VARCHAR(255) PRIMARY KEY, code VARCHAR(10), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
                         $db->query("DELETE FROM " . MAIN_DB_PREFIX . "foodbank_email_verification WHERE email = '".$db->escape($email)."'");
                         $db->query("INSERT INTO " . MAIN_DB_PREFIX . "foodbank_email_verification (email, code) VALUES ('".$db->escape($email)."', '$otp')");
@@ -127,13 +127,13 @@ if ($action == 'register' && empty($error)) {
                         exit;
                     } else {
                         $db->rollback();
-                        // Show specific DB error for debugging
-                        $error = "DB Error: " . $db->lasterror(); 
+                        dol_syslog("Vendor Registration DB Error: " . $db->lasterror(), LOG_ERR);
+                        $error = "We encountered a technical error. Please contact support.";
                     }
                 } else {
                     $db->rollback();
-                    $error = "Account creation failed: " . $newuser->error;
-                    if(!empty($newuser->errors)) $error .= " " . implode(', ', $newuser->errors);
+                    dol_syslog("Vendor User Creation Error: " . $newuser->error, LOG_ERR);
+                    $error = "Account creation failed. Please ensure your password meets the complexity requirements.";
                 }
             }
         }
