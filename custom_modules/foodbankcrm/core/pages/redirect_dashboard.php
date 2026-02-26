@@ -20,6 +20,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 
 // Don't redirect if already on a dashboard or specific page
 $skip_pages = array(
+    'dashboard_admin.php',
     'dashboard_vendor.php',
     'dashboard_beneficiary.php',
     'index.php',
@@ -44,6 +45,12 @@ if (strpos($current_uri, 'mainmenu=') !== false ||
 // Load permissions class
 require_once __DIR__ . '/../class/permissions.class.php';
 
+// Check if user is admin
+if (FoodbankPermissions::isAdmin($user)) {
+    header('Location: '.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/dashboard_admin.php');
+    exit;
+}
+
 // Check if user is a vendor
 if (FoodbankPermissions::isVendor($user, $db)) {
     // Check if vendor record exists and is linked
@@ -52,7 +59,7 @@ if (FoodbankPermissions::isVendor($user, $db)) {
     
     if ($resql && $db->num_rows($resql) > 0) {
         // Redirect to vendor dashboard
-        header('Location: /custom/foodbankcrm/core/pages/dashboard_vendor.php');
+        header('Location: '.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/dashboard_vendor.php');
         exit;
     }
 }
@@ -65,7 +72,7 @@ if (FoodbankPermissions::isBeneficiary($user, $db)) {
     
     if ($resql && $db->num_rows($resql) > 0) {
         // Redirect to beneficiary dashboard
-        header('Location: /custom/foodbankcrm/core/pages/dashboard_beneficiary.php');
+        header('Location: '.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/dashboard_beneficiary.php');
         exit;
     }
 }

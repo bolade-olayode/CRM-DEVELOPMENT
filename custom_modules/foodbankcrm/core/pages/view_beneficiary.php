@@ -89,7 +89,7 @@ print '<div class="fb-container">';
 print '<div class="profile-header">';
     print '<div class="profile-info">';
         print '<h1>'.dol_escape_htmltag($object->firstname.' '.$object->lastname).'</h1>';
-        print '<p>Subscriber Ref: <strong>'.dol_escape_htmltag($object->ref).'</strong> &nbsp;|&nbsp; Joined: '.dol_print_date($object->date_creation, 'day').'</p>';
+        print '<p>Subscriber Ref: <strong>'.dol_escape_htmltag($object->ref).'</strong> &nbsp;|&nbsp; Joined: '.dol_print_date($db->jdate($object->date_creation), 'day').'</p>';
     print '</div>';
     
     print '<div class="actions">';

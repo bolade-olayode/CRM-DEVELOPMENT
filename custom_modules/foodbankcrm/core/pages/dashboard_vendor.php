@@ -1,7 +1,8 @@
 <?php
 /**
- * VENDOR DASHBOARD (FINAL VERIFIED)
- * Logic: Checks Status -> If Pending, show Lock Screen. If Active, show Entrepreneur Dashboard.
+ * VENDOR DASHBOARD - FoodbankCRM Design System
+ * Role Color: Amber (#d97706) | Layout: Fullscreen with Sticky Top Nav
+ * Logic: Pending vendors see lock screen. Active vendors see full portal.
  */
 define('NOTOKENRENEWAL', 1);
 define('NOCSRFCHECK', 1);
@@ -11,21 +12,18 @@ require_once dirname(__DIR__, 3) . '/foodbankcrm/class/permissions.class.php';
 
 global $user, $db, $conf;
 
-// Reset Redirect Flag to prevent loops
 if (isset($_SESSION['foodbank_checked'])) {
     $_SESSION['foodbank_checked'] = false;
 }
 
 $langs->load("admin");
 
-// 1. SECURITY CHECK: Is User a Vendor?
-$user_is_vendor = FoodbankPermissions::isVendor($user, $db);
-if (!$user_is_vendor) {
+// Security Check
+if (!FoodbankPermissions::isVendor($user, $db)) {
     accessforbidden('You do not have access to the vendor dashboard.');
 }
 
-// 2. FETCH VENDOR DETAILS & STATUS
-// We query by fk_user because the user just logged in with their User Account
+// Fetch Vendor
 $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = ".(int)$user->id;
 $res = $db->query($sql);
 
@@ -36,195 +34,354 @@ if (!$res || $db->num_rows($res) == 0) {
     exit;
 }
 
-$vendor = $db->fetch_object($res);
-$vendor_id = $vendor->rowid;
-$vendor_status = $vendor->status; // Critical: Get 'Pending' or 'Active'
+$vendor        = $db->fetch_object($res);
+$vendor_id     = $vendor->rowid;
+$vendor_status = $vendor->status;
 
 llxHeader('', 'Vendor Dashboard');
-
-// --- CSS STYLES ---
-print '<style>
-    /* HIDE DOLIBARR CHROME */
-    #id-top, .side-nav, .side-nav-vert, #id-left, .login_block, .tmenudiv, .nav-bar, header { display: none !important; }
-
-    /* RESET LAYOUT */
-    html, body { background-color: #f8f9fa !important; margin: 0 !important; width: 100% !important; overflow-x: hidden !important; }
-    #id-right, .id-right { margin: 0 !important; width: 100vw !important; max-width: 100vw !important; padding: 0 !important; }
-    .fiche { max-width: 100% !important; margin: 0 !important; }
-
-    /* DASHBOARD CONTAINER */
-    .vendor-container { width: 95%; max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: "Segoe UI", sans-serif; }
-
-    /* LOCKED SCREEN (GATEKEEPER) */
-    .locked-box { 
-        background: white; max-width: 600px; margin: 60px auto; padding: 50px; 
-        border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
-        border-top: 5px solid #f6ad55; 
-    }
-    .status-badge-locked { 
-        background: #fffaf0; color: #c05621; padding: 8px 20px; border-radius: 30px; 
-        font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12px;
-        display: inline-block; margin-bottom: 20px; border: 1px solid #fbd38d;
+?>
+<style>
+    :root {
+        --accent:       #d97706;
+        --accent-light: #fef3c7;
+        --accent-dark:  #b45309;
+        --surface:      #fffbeb;
+        --radius:       12px;
+        --shadow:       0 4px 12px rgba(0,0,0,0.06);
+        --font:         "Segoe UI", Roboto, Arial, sans-serif;
     }
 
-    /* ACTIVE DASHBOARD WIDGETS */
-    .dashboard-card {
-        background: white; padding: 25px; border-radius: 12px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; 
-        transition: transform 0.2s; text-decoration: none; color: inherit; display: block;
+    /* Fullscreen layout — hide all Dolibarr chrome */
+    #id-top, .side-nav, .side-nav-vert, #id-left, .login_block, .tmenudiv, .nav-bar, header {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        pointer-events: none !important;
     }
-    .dashboard-card:hover { transform: translateY(-5px); border-color: #667eea; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    html, body {
+        background: #f8f9fa !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+        font-family: var(--font);
+    }
+    #id-container, #id-right, .id-right {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        flex: none !important;
+        display: block !important;
+    }
+    .fiche { width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+    body { padding-top: 60px !important; }
 
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { color: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    
-    .btn-primary { background: #667eea; color: white; padding: 12px 25px; border-radius: 30px; text-decoration: none; font-weight: bold; box-shadow: 0 4px 12px rgba(102,126,234,0.3); display: inline-block; }
-    .btn-logout { background: white; color: #dc3545; border: 1px solid #dc3545; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s; }
-    .btn-logout:hover { background: #dc3545; color: white; }
+    /* Sticky Top Nav */
+    .fb-topnav {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 60px;
+        background: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        z-index: 9999;
+        box-shadow: 0 2px 12px rgba(217,119,6,0.25);
+    }
+    .fb-topnav-brand { font-size: 18px; font-weight: 800; color: white; text-decoration: none; }
+    .fb-topnav-links { display: flex; gap: 4px; align-items: center; }
+    .fb-topnav-link {
+        color: rgba(255,255,255,0.85);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 6px 14px;
+        border-radius: 20px;
+        transition: background 0.15s;
+    }
+    .fb-topnav-link:hover { background: rgba(255,255,255,0.2); color: white; }
+    .fb-topnav-user { display: flex; align-items: center; gap: 12px; }
+    .fb-topnav-name { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 500; }
+    .fb-btn-logout {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255,255,255,0.15);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.4);
+        padding: 7px 16px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+    .fb-btn-logout:hover { background: white; color: var(--accent); border-color: white; }
 
-    .modern-table { width: 100%; border-collapse: collapse; }
-    .modern-table th { text-align: left; padding: 15px; color: #888; border-bottom: 2px solid #eee; font-size: 13px; text-transform: uppercase; }
-    .modern-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; color: #333; }
-    .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; color: white; }
-</style>';
+    /* Main Container */
+    .fb-container {
+        width: 95%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
 
-print '<div class="vendor-container">';
+    /* Page Header */
+    .fb-header { margin-bottom: 30px; }
+    .fb-header h1 { margin: 0; font-size: 28px; font-weight: 800; color: #1e293b; }
+    .fb-header p  { margin: 5px 0 0; color: #64748b; font-size: 14px; }
 
-// ============================================================
-// 3. THE GATEKEEPER LOGIC (Block Pending Vendors)
-// ============================================================
+    /* Stat Cards */
+    .fb-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 20px;
+        margin-bottom: 35px;
+    }
+    .fb-stat-card {
+        background: white;
+        padding: 24px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        border: 1px solid #f1f5f9;
+        border-top: 4px solid var(--accent);
+        text-decoration: none;
+        display: block;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .fb-stat-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .fb-stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 8px; }
+    .fb-stat-value { font-size: 30px; font-weight: 800; color: #1e293b; line-height: 1; }
+    .fb-stat-sub   { font-size: 12px; margin-top: 6px; color: #64748b; }
+
+    /* Section Title */
+    .fb-section-title { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 18px; }
+
+    /* Action Cards */
+    .fb-action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 18px;
+        margin-bottom: 40px;
+    }
+    .fb-action-card {
+        background: white;
+        padding: 28px 20px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        border: 1px solid #f1f5f9;
+        text-align: center;
+        text-decoration: none;
+        color: #334155;
+        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        display: block;
+    }
+    .fb-action-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent);
+        box-shadow: 0 8px 24px rgba(217,119,6,0.12);
+    }
+    .fb-action-icon  { font-size: 38px; margin-bottom: 12px; }
+    .fb-action-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .fb-action-desc  { font-size: 12px; color: #94a3b8; }
+
+    /* Card Wrapper */
+    .fb-card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid #f1f5f9; overflow: hidden; }
+    .fb-card-footer { padding: 14px 20px; border-top: 1px solid #f1f5f9; text-align: right; }
+    .fb-card-footer a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 13px; }
+    .fb-card-empty  { padding: 50px; text-align: center; color: #94a3b8; }
+
+    /* Table */
+    .fb-table { width: 100%; border-collapse: collapse; }
+    .fb-table th { text-align: left; padding: 13px 20px; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    .fb-table td { padding: 13px 20px; border-bottom: 1px solid #f8fafc; color: #334155; font-size: 14px; }
+    .fb-table tr:last-child td { border-bottom: none; }
+    .fb-table tr:hover td { background: #fef9f0; }
+    .fb-badge { display: inline-block; padding: 3px 11px; border-radius: 20px; font-size: 11px; font-weight: 700; color: white; }
+
+    /* Pending Lock Screen */
+    .fb-locked-wrapper { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 60px); padding: 40px 20px; }
+    .fb-locked-box {
+        background: white;
+        max-width: 560px;
+        width: 100%;
+        padding: 50px 40px;
+        border-radius: var(--radius);
+        text-align: center;
+        box-shadow: var(--shadow);
+        border-top: 5px solid var(--accent);
+    }
+    .fb-pending-badge {
+        background: var(--accent-light);
+        color: var(--accent-dark);
+        padding: 7px 20px;
+        border-radius: 30px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 11px;
+        display: inline-block;
+        margin-bottom: 20px;
+        border: 1px solid #fcd34d;
+    }
+    .fb-logout-plain {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        padding: 10px 22px;
+        border-radius: 30px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    .fb-logout-plain:hover { background: #f1f5f9; }
+</style>
+
+<?php
+// ===== GATEKEEPER: Pending Vendors =====
 if ($vendor_status == 'Pending') {
-    print '<div class="locked-box">';
-    print '<span class="status-badge-locked">Application Under Review</span>';
-    print '<h1 style="color:#2d3748; margin-bottom:15px;">Welcome, '.dol_escape_htmltag($vendor->name).'</h1>';
-    print '<div style="font-size:60px; margin-bottom:20px;">⏳</div>';
-    print '<p style="color:#718096; font-size:18px; line-height:1.6;">';
+    print '<div class="fb-locked-wrapper">';
+    print '<div class="fb-locked-box">';
+    print '<span class="fb-pending-badge">Application Under Review</span>';
+    print '<div style="font-size:56px; margin:10px 0 18px;">⏳</div>';
+    print '<h2 style="margin:0 0 12px; color:#1e293b; font-size:24px;">Welcome, '.dol_escape_htmltag($vendor->name).'!</h2>';
+    print '<p style="color:#64748b; font-size:16px; line-height:1.7; margin:0 0 8px;">';
     print 'Thank you for registering as a vendor partner.<br>';
-    print 'Your application is currently being reviewed by our procurement team.';
+    print 'Your application is being reviewed by our procurement team.';
     print '</p>';
-    print '<p style="color:#718096; margin-top:20px; font-size:14px;">You will receive an email once your account is active.</p>';
-    print '<br><a href="'.DOL_URL_ROOT.'/user/logout.php" class="btn-logout">Log Out</a>';
+    print '<p style="color:#94a3b8; font-size:13px; margin:0 0 30px;">You will receive an email once your account is activated.</p>';
+    print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-logout-plain">🚪 Log Out</a>';
     print '</div>';
-    
-    print '</div>'; // End Container
+    print '</div>';
     llxFooter();
-    exit; // STOP EXECUTION HERE
+    exit;
 }
 
-// ============================================================
-// 4. ACTIVE VENDOR DASHBOARD (Entrepreneur View)
-// ============================================================
+// ===== ACTIVE VENDOR DASHBOARD =====
 
-// --- HEADER ---
-print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">';
-print '<div>';
-print '<h1 style="margin: 0; color: #2c3e50; font-size: 32px;">👋 Welcome, '.dol_escape_htmltag($vendor->name).'!</h1>';
-print '<p style="color: #666; margin: 5px 0 0 0;">Vendor Portal • ID: '.dol_escape_htmltag($vendor->ref).'</p>';
-print '</div>';
-
-// Header Actions
-print '<div style="display: flex; gap: 15px; align-items: center;">';
-print '<a href="create_donation.php" class="btn-primary">📦 Add Inventory</a>';
-print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="btn-logout"><span>🚪</span> Logout</a>';
-print '</div>';
-print '</div>';
-
-// --- STATS CALCULATION ---
-// We check the donations/inventory table for this specific vendor
-$sql_stats = "SELECT 
+// Stats Query
+$sql_stats = "SELECT
     COUNT(DISTINCT d.rowid) as total_batches,
     COALESCE(SUM(d.quantity), 0) as total_quantity,
     COALESCE(SUM(CASE WHEN d.status = 'Pending' THEN 1 ELSE 0 END), 0) as pending_review,
     COUNT(DISTINCT d.product_name) as unique_products
     FROM ".MAIN_DB_PREFIX."foodbank_donations d
     WHERE d.fk_vendor = ".(int)$vendor_id;
-
 $res_stats = $db->query($sql_stats);
 $stats = ($res_stats) ? $db->fetch_object($res_stats) : new stdClass();
 
-// --- STATS GRID ---
-print '<div class="stats-grid">';
-
-print '<div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">';
-print '<div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Total Batches</div>';
-print '<div style="font-size: 36px; font-weight: bold;">'.($stats->total_batches ?? 0).'</div>';
+// --- STICKY TOP NAV ---
+print '<div class="fb-topnav">';
+print '<a href="dashboard_vendor.php" class="fb-topnav-brand">🏭 Vendor Portal</a>';
+print '<div class="fb-topnav-links">';
+print '<a href="my_donations.php"   class="fb-topnav-link">Supply History</a>';
+print '<a href="vendor_reports.php" class="fb-topnav-link">Performance</a>';
+print '<a href="vendor_profile.php" class="fb-topnav-link">Profile</a>';
+print '<a href="vendor_support.php" class="fb-topnav-link">Support</a>';
+print '</div>';
+print '<div class="fb-topnav-user">';
+print '<span class="fb-topnav-name">'.dol_escape_htmltag($vendor->name).'</span>';
+print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-btn-logout">🚪 Logout</a>';
+print '</div>';
 print '</div>';
 
-print '<div class="stat-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">';
-print '<div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Pending Review</div>';
-print '<div style="font-size: 36px; font-weight: bold;">'.($stats->pending_review ?? 0).'</div>';
+// --- MAIN CONTENT ---
+print '<div class="fb-container">';
+
+print '<div class="fb-header">';
+print '<h1>👋 Welcome, '.dol_escape_htmltag($vendor->name).'!</h1>';
+print '<p>Vendor Portal &bull; ID: '.dol_escape_htmltag($vendor->ref).'</p>';
 print '</div>';
 
-print '<div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">';
-print '<div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Active Products</div>';
-print '<div style="font-size: 36px; font-weight: bold;">'.($stats->unique_products ?? 0).'</div>';
+// Stats Grid
+print '<div class="fb-stats-grid">';
+
+print '<div class="fb-stat-card" style="border-top-color:#667eea;">';
+print '<div class="fb-stat-label">Total Batches</div>';
+print '<div class="fb-stat-value">'.($stats->total_batches ?? 0).'</div>';
+print '<div class="fb-stat-sub">Inventory submissions</div>';
 print '</div>';
 
-print '<div class="stat-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">';
-print '<div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Units Supplied</div>';
-print '<div style="font-size: 36px; font-weight: bold;">'.number_format($stats->total_quantity ?? 0).'</div>';
+print '<div class="fb-stat-card" style="border-top-color:#f59e0b;">';
+print '<div class="fb-stat-label">Pending Review</div>';
+print '<div class="fb-stat-value">'.($stats->pending_review ?? 0).'</div>';
+print '<div class="fb-stat-sub">Awaiting admin approval</div>';
 print '</div>';
 
-print '</div>'; // End Stats Grid
+print '<div class="fb-stat-card" style="border-top-color:#10b981;">';
+print '<div class="fb-stat-label">Active Products</div>';
+print '<div class="fb-stat-value">'.($stats->unique_products ?? 0).'</div>';
+print '<div class="fb-stat-sub">Distinct items supplied</div>';
+print '</div>';
 
-// --- QUICK ACTIONS MENU ---
-print '<h2 style="margin: 40px 0 20px 0; color: #2c3e50;">⚡ Management Console</h2>';
-print '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">';
+print '<div class="fb-stat-card" style="border-top-color:#8b5cf6;">';
+print '<div class="fb-stat-label">Units Supplied</div>';
+print '<div class="fb-stat-value">'.number_format($stats->total_quantity ?? 0).'</div>';
+print '<div class="fb-stat-sub">Total quantity logged</div>';
+print '</div>';
+
+print '</div>';
+
+// Action Cards
+print '<div class="fb-section-title">⚡ Management Console</div>';
+print '<div class="fb-action-grid">';
 
 $actions = [
-    ['icon' => '📦', 'title' => 'Supply History', 'desc' => 'Track stock logs & status', 'link' => 'my_donations.php'],
-    ['icon' => '📊', 'title' => 'Performance', 'desc' => 'View supply metrics', 'link' => 'vendor_reports.php'],
-    ['icon' => '🏢', 'title' => 'Business Profile', 'desc' => 'Update company details', 'link' => 'vendor_profile.php'],
-    ['icon' => '💬', 'title' => 'Vendor Support', 'desc' => 'Contact administration', 'link' => 'vendor_support.php']
+    ['icon' => '📦', 'title' => 'Add Inventory',    'desc' => 'Submit a new supply batch',  'link' => 'create_donation.php'],
+    ['icon' => '📋', 'title' => 'Supply History',   'desc' => 'Track stock logs & status',  'link' => 'my_donations.php'],
+    ['icon' => '📊', 'title' => 'Performance',      'desc' => 'View supply metrics',        'link' => 'vendor_reports.php'],
+    ['icon' => '🏢', 'title' => 'Business Profile', 'desc' => 'Update company details',     'link' => 'vendor_profile.php'],
+    ['icon' => '💬', 'title' => 'Vendor Support',   'desc' => 'Contact administration',     'link' => 'vendor_support.php'],
 ];
 
 foreach ($actions as $act) {
-    print '<a href="'.$act['link'].'" class="dashboard-card">';
-    print '<div style="font-size: 40px; margin-bottom: 15px;">'.$act['icon'].'</div>';
-    print '<div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">'.$act['title'].'</div>';
-    print '<div style="color: #999; font-size: 14px;">'.$act['desc'].'</div>';
+    print '<a href="'.$act['link'].'" class="fb-action-card">';
+    print '<div class="fb-action-icon">'.$act['icon'].'</div>';
+    print '<div class="fb-action-title">'.$act['title'].'</div>';
+    print '<div class="fb-action-desc">'.$act['desc'].'</div>';
     print '</a>';
 }
 print '</div>';
 
-// --- RECENT SUPPLY TABLE ---
-print '<h2 style="margin: 40px 0 20px 0; color: #2c3e50;">📋 Recent Inventory Logs</h2>';
+// Recent Inventory Table
+print '<div class="fb-section-title">📋 Recent Inventory Logs</div>';
 
-$sql_recent = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_donations 
+$sql_recent = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_donations
                WHERE fk_vendor = ".(int)$vendor_id."
-               ORDER BY date_donation DESC 
-               LIMIT 5";
+               ORDER BY date_donation DESC LIMIT 5";
 $res_recent = $db->query($sql_recent);
 
 if ($res_recent && $db->num_rows($res_recent) > 0) {
-    print '<div style="background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">';
-    print '<table class="modern-table">';
-    print '<thead><tr><th>Batch Ref</th><th>Date</th><th>Product</th><th style="text-align:center;">Qty</th><th style="text-align:center;">Status</th></tr></thead>';
+    print '<div class="fb-card">';
+    print '<table class="fb-table">';
+    print '<thead><tr><th>Batch Ref</th><th>Date</th><th>Product</th><th style="text-align:center">Qty</th><th style="text-align:center">Status</th></tr></thead>';
     print '<tbody>';
-    
     while ($row = $db->fetch_object($res_recent)) {
-        $color = ($row->status == 'Received') ? '#28a745' : (($row->status == 'Pending') ? '#ffc107' : '#dc3545');
-        
+        $color = ($row->status == 'Received') ? '#10b981' : (($row->status == 'Pending') ? '#f59e0b' : '#ef4444');
         print '<tr>';
         print '<td><strong>'.dol_escape_htmltag($row->ref).'</strong></td>';
         print '<td>'.dol_print_date($db->jdate($row->date_donation), 'day').'</td>';
         print '<td>'.dol_escape_htmltag($row->product_name).'</td>';
-        print '<td style="text-align:center;">'.number_format($row->quantity).'</td>';
-        print '<td style="text-align:center;"><span class="status-badge" style="background:'.$color.'">'.dol_escape_htmltag($row->status).'</span></td>';
+        print '<td style="text-align:center">'.number_format($row->quantity).'</td>';
+        print '<td style="text-align:center"><span class="fb-badge" style="background:'.$color.'">'.dol_escape_htmltag($row->status).'</span></td>';
         print '</tr>';
     }
-    
     print '</tbody></table>';
+    print '<div class="fb-card-footer"><a href="my_donations.php">View Full Stock Log →</a></div>';
     print '</div>';
-    print '<div style="text-align:right; margin-top:15px;"><a href="my_donations.php" style="color:#667eea; text-decoration:none; font-weight:bold;">View Full Stock Log →</a></div>';
 } else {
-    print '<div style="text-align:center; padding:50px; background:white; border-radius:12px; border:2px dashed #eee;">';
-    print '<div style="font-size:40px; margin-bottom:10px;">📉</div>';
-    print '<div style="color:#999;">No inventory logs found. Start supplying products today!</div>';
-    print '</div>';
+    print '<div class="fb-card"><div class="fb-card-empty">';
+    print '<div style="font-size:36px; margin-bottom:10px;">📉</div>';
+    print 'No inventory logs yet. Start supplying products today!';
+    print '</div></div>';
 }
 
-print '</div>'; // End Container
-
+print '</div>'; // End container
 llxFooter();
 ?>

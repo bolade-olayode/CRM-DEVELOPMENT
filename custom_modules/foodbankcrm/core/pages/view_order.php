@@ -30,11 +30,14 @@ if (empty($order_id)) {
     exit;
 }
 
-// Get beneficiary ID
-$sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
+// Get beneficiary profile
+$sql_ben = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
 $res_ben = $db->query($sql_ben);
+if (!$res_ben || $db->num_rows($res_ben) == 0) {
+    accessforbidden('Beneficiary profile not found.');
+}
 $beneficiary = $db->fetch_object($res_ben);
-$subscriber_id = $beneficiary->rowid;
+$subscriber_id = (int)$beneficiary->rowid;
 
 // Get order details
 $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distributions 

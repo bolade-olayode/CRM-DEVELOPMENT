@@ -56,7 +56,7 @@ if ($search_query) {
               OR b.lastname LIKE '%".$db->escape($search_query)."%')";
 }
 
-$sql .= " GROUP BY d.rowid ORDER BY d.date_creation DESC";
+$sql .= " GROUP BY d.rowid ORDER BY d.datec DESC";
 
 $res = $db->query($sql);
 
@@ -149,7 +149,7 @@ while ($order = $db->fetch_object($res)) {
     print dol_escape_htmltag($order->firstname.' '.$order->lastname).'<br>';
     print '<span style="font-size: 11px; color: #666;">'.dol_escape_htmltag($order->subscriber_ref).'</span>';
     print '</td>';
-    print '<td>'.dol_print_date($db->jdate($order->date_creation), 'day').'</td>';
+    print '<td>'.dol_print_date($db->jdate($order->datec), 'day').'</td>';
     print '<td class="center">'.$order->item_count.'</td>';
     print '<td class="center"><strong>₦'.number_format($order->total_amount, 2).'</strong></td>';
     print '<td>';

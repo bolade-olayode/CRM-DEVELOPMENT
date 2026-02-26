@@ -32,7 +32,7 @@ $sql = "SELECT
     SUM(quantity) as total_quantity,
     SUM(CASE WHEN status = 'Received' THEN quantity ELSE 0 END) as received_quantity,
     AVG(CASE WHEN unit_price > 0 THEN unit_price ELSE NULL END) as avg_price,
-    MAX(date_creation) as last_supplied
+    MAX(datec) as last_supplied
     FROM ".MAIN_DB_PREFIX."foodbank_donations
     WHERE fk_vendor = ".(int)$vendor_id."
     GROUP BY product_name, category, unit

@@ -29,8 +29,11 @@ if (!$user_is_beneficiary) {
 // Get beneficiary info
 $sql_ben = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
 $res_ben = $db->query($sql_ben);
+if (!$res_ben || $db->num_rows($res_ben) == 0) {
+    accessforbidden('Beneficiary profile not found.');
+}
 $subscriber = $db->fetch_object($res_ben);
-$subscriber_id = $subscriber->rowid;
+$subscriber_id = (int)$subscriber->rowid;
 
 // Get available tiers
 $sql_tiers = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE status = 'Active' AND tier_type != 'Guest' ORDER BY price ASC";

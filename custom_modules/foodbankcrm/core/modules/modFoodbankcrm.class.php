@@ -353,8 +353,8 @@ class modFoodbankcrm extends DolibarrModules
             'url'       => '/custom/foodbankcrm/core/pages/my_donations.php',
             'langs'     => 'foodbankcrm@foodbankcrm',
             'position'  => 2001,
-            'enabled'   => '1',
-            'perms'     => '$user->rights->foodbankcrm->vendor->view_own && !$user->admin',
+            'enabled'   => '!$user->admin',
+            'perms'     => '$user->rights->foodbankcrm->vendor->view_own',
             'target'    => '',
             'user'      => 2
         );
@@ -369,8 +369,8 @@ class modFoodbankcrm extends DolibarrModules
             'url'       => '/custom/foodbankcrm/core/pages/create_donation.php',
             'langs'     => 'foodbankcrm@foodbankcrm',
             'position'  => 2002,
-            'enabled'   => '1',
-            'perms'     => '$user->rights->foodbankcrm->vendor->create_donation && !$user->admin',
+            'enabled'   => '!$user->admin',
+            'perms'     => '$user->rights->foodbankcrm->vendor->create_donation',
             'target'    => '',
             'user'      => 2
         );
@@ -388,8 +388,8 @@ class modFoodbankcrm extends DolibarrModules
             'url'       => '/custom/foodbankcrm/core/pages/my_orders.php',
             'langs'     => 'foodbankcrm@foodbankcrm',
             'position'  => 3001,
-            'enabled'   => '1',
-            'perms'     => '$user->rights->foodbankcrm->beneficiary->view_own && !$user->admin',
+            'enabled'   => '!$user->admin',
+            'perms'     => '$user->rights->foodbankcrm->beneficiary->view_own',
             'target'    => '',
             'user'      => 2
         );
@@ -404,8 +404,8 @@ class modFoodbankcrm extends DolibarrModules
             'url'       => '/custom/foodbankcrm/core/pages/available_packages.php',
             'langs'     => 'foodbankcrm@foodbankcrm',
             'position'  => 3002,
-            'enabled'   => '1',
-            'perms'     => '$user->rights->foodbankcrm->beneficiary->dashboard && !$user->admin',
+            'enabled'   => '!$user->admin',
+            'perms'     => '$user->rights->foodbankcrm->beneficiary->dashboard',
             'target'    => '',
             'user'      => 2
         );

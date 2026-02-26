@@ -24,11 +24,13 @@ class InterfaceRedirect extends DolibarrTriggers
             require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
             
             $redirect_url = '';
-            
-            // 1. Check Admin
-            if (FoodbankPermissions::isAdmin($user)) {
+
+            // 1. Check Admin - use DB query (same pattern as vendor/beneficiary, more reliable at trigger time)
+            $sql_admin = "SELECT admin FROM ".MAIN_DB_PREFIX."user WHERE rowid = ".(int)$user->id." AND admin = 1";
+            $res_admin = $this->db->query($sql_admin);
+            if ($res_admin && $this->db->num_rows($res_admin) > 0) {
                 $redirect_url = '/custom/foodbankcrm/core/pages/dashboard_admin.php';
-            } 
+            }
             // 2. Check Vendor
             elseif (FoodbankPermissions::isVendor($user, $this->db)) {
                 $redirect_url = '/custom/foodbankcrm/core/pages/dashboard_vendor.php';

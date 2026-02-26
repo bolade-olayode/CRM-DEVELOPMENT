@@ -138,7 +138,7 @@ print '<h2 style="margin-top: 0; margin-bottom: 20px;">Current Status</h2>';
 print '<div style="font-size: 16px; font-weight: bold; padding: 15px; border-radius: 50px; background:'.$colors['bg'].'; color:'.$colors['color'].'; display: inline-block; margin-bottom: 15px;">';
 print $colors['icon'].' '.dol_escape_htmltag($donation->status);
 print '</div>';
-print '<div style="color: #666; font-size: 14px;">Submitted on '.dol_print_date($db->jdate($donation->date_creation), 'dayhour').'</div>';
+print '<div style="color: #666; font-size: 14px;">Submitted on '.dol_print_date($db->jdate($donation->datec), 'dayhour').'</div>';
 print '</div>';
 
 // Warehouse Info

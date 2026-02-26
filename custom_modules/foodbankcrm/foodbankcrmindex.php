@@ -57,6 +57,21 @@ if (!$res) {
 }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
+
+// Route authenticated users to their role dashboard immediately
+if (!empty($user->id)) {
+    if (FoodbankPermissions::isAdmin($user)) {
+        header('Location: '.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/dashboard_admin.php');
+        exit;
+    } elseif (FoodbankPermissions::isVendor($user, $db)) {
+        header('Location: '.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/dashboard_vendor.php');
+        exit;
+    } elseif (FoodbankPermissions::isBeneficiary($user, $db)) {
+        header('Location: '.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/dashboard_beneficiary.php');
+        exit;
+    }
+}
 
 // Load translation files required by the page
 $langs->loadLangs(array("foodbankcrm@foodbankcrm"));
