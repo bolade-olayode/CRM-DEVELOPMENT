@@ -79,19 +79,18 @@ if ($action == 'verify') {
     } else {
         $code_input = GETPOST('code', 'alpha');
 
+        // Expiry check done in MySQL (avoids PHP/MySQL timezone mismatch) — 10 min window
         $sql = "SELECT * FROM " . MAIN_DB_PREFIX . "foodbank_email_verification
                 WHERE email = '" . $db->escape($email) . "'
-                AND code = '" . $db->escape($code_input) . "'";
+                AND code = '" . $db->escape($code_input) . "'
+                AND created_at > (NOW() - INTERVAL 10 MINUTE)";
 
         $res = $db->query($sql);
 
         if ($res && $db->num_rows($res) > 0) {
             $obj = $db->fetch_object($res);
 
-            // Expiration Check (5 Mins)
-            if ((time() - strtotime($obj->created_at)) > 300) {
-                $error = "Code expired. Please request a new one.";
-            } else {
+            {
                 $db->begin();
 
                 // Find User ID
@@ -108,36 +107,13 @@ if ($action == 'verify') {
                     // Clean up: delete OTP and failed attempt records
                     $db->query("DELETE FROM " . MAIN_DB_PREFIX . "foodbank_email_verification WHERE email = '" . $db->escape($email) . "'");
                     $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_rate_limit WHERE ip_address = '".$db->escape($email)."' AND action_type IN ('otp_verify','otp_resend')");
+                    $login = $u->login;
                     $db->commit();
 
-                    // Regenerate session to prevent session fixation
-                    session_regenerate_id(true);
-
-                    // Auto Login
-                    $_SESSION["dol_login"] = $u->login;
-                    $_SESSION["dol_entity"] = 1;
-                    $_SESSION["dol_authtype"] = 'form';
-                    $_SESSION["foodbank_checked"] = true;
-
-                    // --- SMART ROUTING LOGIC ---
-                    // 1. Check if Vendor
-                    $sql_vend = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = " . $u->id;
-                    $res_vend = $db->query($sql_vend);
-                    if ($res_vend && $db->num_rows($res_vend) > 0) {
-                        header("Location: dashboard_vendor.php");
-                        exit;
-                    }
-
-                    // 2. Check if Subscriber
-                    $sql_sub = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = " . $u->id;
-                    $res_sub = $db->query($sql_sub);
-                    if ($res_sub && $db->num_rows($res_sub) > 0) {
-                        header("Location: dashboard_beneficiary.php");
-                        exit;
-                    }
-
-                    // 3. Fallback
-                    header("Location: ../../index.php");
+                    // Account is now active. Redirect to Dolibarr's login page.
+                    // backtopage routes the user to their correct dashboard after login.
+                    $backtopage = DOL_URL_ROOT . '/custom/foodbankcrm/core/pages/redirect_dashboard.php';
+                    header("Location: " . DOL_URL_ROOT . "/index.php?username=" . urlencode($login) . "&backtopage=" . urlencode($backtopage));
                     exit;
 
                 } else {

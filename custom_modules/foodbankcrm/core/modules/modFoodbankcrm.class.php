@@ -28,27 +28,10 @@ class modFoodbankcrm extends DolibarrModules
         $this->depends      = array();
         $this->requiredby   = array();
         $this->conflictwith = array();
-        $this->module_parts = array();
+        $this->module_parts = array('triggers' => 1);
 
-        // =================================================================
-        // 1. INJECT LOGIN PAGE BUTTONS (Register / Vendor Application)
-        // =================================================================
         $this->const = array();
         $r = 0;
-
-        $html_buttons = '<div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px; text-align:center;">';
-        $html_buttons .= '<a href="'.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/register.php" style="display:block; margin-bottom:10px; text-decoration:none; background:#667eea; color:white; padding:10px; border-radius:5px; font-weight:bold;">👤 Register as Beneficiary</a>';
-        $html_buttons .= '<a href="'.DOL_URL_ROOT.'/custom/foodbankcrm/core/pages/register_vendor.php" style="display:block; text-decoration:none; background:#f8f9fa; color:#333; border:1px solid #ddd; padding:10px; border-radius:5px; font-weight:bold;">🏢 Become a Vendor</a>';
-        $html_buttons .= '</div>';
-
-        $this->const[$r] = array(
-            'name' => 'MAIN_LOGIN_INSTRUCTIONS',
-            'consttype' => 'chaine',
-            'value' => $html_buttons,
-            'note' => 'Added by FoodbankCRM',
-            'visible' => 1
-        );
-        $r++;
 
         $this->const[$r] = array(
             'name' => 'FOODBANK_PAYSTACK_PUBLIC_KEY',
@@ -153,7 +136,7 @@ class modFoodbankcrm extends DolibarrModules
             'titre'     => 'Foodbank CRM',
             'mainmenu'  => 'foodbankcrm',
             'leftmenu'  => '',
-            'url'       => '/custom/foodbankcrm/core/pages/dashboard_admin.php',
+            'url'       => '/custom/foodbankcrm/core/pages/redirect_dashboard.php',
             'langs'     => 'foodbankcrm@foodbankcrm',
             'position'  => 1000,
             'enabled'   => '1',
