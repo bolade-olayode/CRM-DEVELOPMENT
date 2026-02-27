@@ -642,7 +642,41 @@ Test in at least 2 browsers:
 - [ ] FoodbankCRM module files uploaded to `htdocs/custom/foodbankcrm/`
 - [ ] File permissions: directories `755`, files `644`
 
-### 11.3 Go-Live Switch
+### 11.3 Email / OTP Configuration
+
+OTP emails (registration verification, vendor approval notifications, resend codes) are sent via Dolibarr's email engine. The sender address is read from Dolibarr's settings automatically -- you just need to configure it once on the host.
+
+**Step 1 -- Create a mailbox on Namecheap cPanel**
+- Log in to cPanel → Email Accounts → Create Account
+- e.g. `noreply@yourdomain.com`
+- Note the password
+
+**Step 2 -- Configure SMTP in Dolibarr**
+Go to **Home → Setup → Emails** and fill in:
+
+| Field | Value |
+|-------|-------|
+| SMTP server | `mail.yourdomain.com` |
+| SMTP port | `587` (TLS) or `465` (SSL) |
+| Authentication | Yes |
+| Login | `noreply@yourdomain.com` |
+| Password | (the mailbox password) |
+| Force TLS | Yes |
+| Sending email address | `noreply@yourdomain.com` |
+| Sending email name | `Foodbank CRM` |
+
+**Step 3 -- Test it**
+- Use Dolibarr's built-in test button (bottom of the Emails setup page) to send a test message
+- Confirm it arrives in your inbox (check spam folder too)
+
+- [ ] Mailbox created on Namecheap cPanel (`noreply@yourdomain.com` or similar)
+- [ ] SMTP server, port, login, and password entered in Dolibarr → Setup → Emails
+- [ ] Sender email address set (this is what OTP emails will show as "From")
+- [ ] Test email sent and received successfully via Dolibarr's test button
+- [ ] Register a test account end-to-end -- OTP email arrives and code works
+- [ ] Check OTP email does not land in spam (add SPF/DKIM records in Namecheap DNS if it does)
+
+### 11.4 Go-Live Switch
 
 - [ ] **Paystack live keys:** Replace `pk_test_` / `sk_test_` with `pk_live_` / `sk_live_` in Settings
 - [ ] **Verify Paystack webhook URL** (if applicable) points to production domain
@@ -661,7 +695,7 @@ Test in at least 2 browsers:
 - [ ] **Create production warehouses** with real locations
 - [ ] **Backup database** before going live
 
-### 11.4 DNS & Domain (Namecheap)
+### 11.5 DNS & Domain (Namecheap)
 
 - [ ] Set A record pointing to your server IP
 - [ ] Or set nameservers to your hosting provider's nameservers
@@ -670,7 +704,7 @@ Test in at least 2 browsers:
 - [ ] Set up `www` CNAME or redirect
 - [ ] Force HTTPS redirect (via `.htaccess` or hosting panel)
 
-### 11.5 Post-Launch Monitoring
+### 11.6 Post-Launch Monitoring
 
 - [ ] Monitor PHP error log for the first 48 hours
 - [ ] Check Paystack dashboard for successful transactions

@@ -119,7 +119,8 @@ if ($action == 'register' && empty($error)) {
                         // Send Email
                         $subject = "Verify Vendor Account - Foodbank CRM";
                         $msg = "Hello $contact_person,\n\nYour Vendor verification code is: $otp\n\nThank you.";
-                        $mail = new CMailFile($subject, $email, 'no-reply@foodbank.com', $msg);
+                        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'no-reply@foodbank.com';
+                        $mail = new CMailFile($subject, $email, $from, $msg);
                         $mail->sendfile();
 
                         // Redirect to Verify Page

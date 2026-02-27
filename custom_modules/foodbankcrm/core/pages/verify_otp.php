@@ -65,7 +65,8 @@ if ($action == 'resend') {
 
         $subject = "New Verification Code";
         $msg = "Your new code is: $otp";
-        $mail = new CMailFile($subject, $email, 'no-reply@foodbank.com', $msg);
+        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'no-reply@foodbank.com';
+        $mail = new CMailFile($subject, $email, $from, $msg);
         $mail->sendfile();
         $success_msg = "A new code has been sent to your email.";
     }

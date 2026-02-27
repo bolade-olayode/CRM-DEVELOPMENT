@@ -44,7 +44,8 @@ if ($action == 'approve') {
         $message .= "Login here: " . DOL_MAIN_URL_ROOT . "/custom/foodbankcrm/index.php\n\n";
         $message .= "Best Regards,\nFoodbank Admin Team";
         
-        $mail = new CMailFile($subject, $vendor->contact_email, 'no-reply@foodbank.com', $message);
+        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'no-reply@foodbank.com';
+        $mail = new CMailFile($subject, $vendor->contact_email, $from, $message);
         $mail->sendfile();
     }
 
