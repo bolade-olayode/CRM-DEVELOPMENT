@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $tier_name       = GETPOST('tier_name', 'alphanohtml');
         $tier_type       = GETPOST('tier_type', 'alphanohtml');
         $duration_months = (int)GETPOST('duration_months', 'int');
-        $price           = (float)GETPOST('price', 'price');
+        $price           = (float)str_replace(',', '.', GETPOST('price', 'alpha'));
         $description     = GETPOST('description', 'restricthtml');
         $benefits        = GETPOST('benefits', 'restricthtml');
         $duration_days   = $duration_months * 30;

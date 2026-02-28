@@ -1,244 +1,286 @@
 <?php
 /**
- * Create Inventory/Supply Log - ENTREPRENEUR FOCUSED
+ * Create Inventory/Supply Log — accessible by Admins and Vendors
  */
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/donation.class.php';
-require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php'; 
+require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
 
 $langs->load("admin");
 
-// --- 1. SECURITY & ROLE CHECK ---
-$is_admin = FoodbankPermissions::isAdmin($user);
+$is_admin  = FoodbankPermissions::isAdmin($user);
 $is_vendor = FoodbankPermissions::isVendor($user, $db);
 
-// If neither, kick them out
 if (!$is_admin && !$is_vendor) {
     accessforbidden('You do not have access to this page.');
 }
 
-// If Vendor, get their ID
-$current_vendor_id = 0;
+// Resolve current vendor (if vendor role)
+$current_vendor_id   = 0;
 $current_vendor_name = '';
 if ($is_vendor) {
     $sql = "SELECT rowid, name FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = ".(int)$user->id;
     $res = $db->query($sql);
     if ($res && $obj = $db->fetch_object($res)) {
-        $current_vendor_id = $obj->rowid;
+        $current_vendor_id   = $obj->rowid;
         $current_vendor_name = $obj->name;
     }
 }
 
-// --- 2. HEADER ---
-llxHeader('', 'Add Inventory');
-
-// --- 3. MODERN CSS ---
-print '<style>
-    /* 1. HIDE CHROME */
-    #id-top, .side-nav, .side-nav-vert, #id-left, .login_block, .tmenudiv, .nav-bar, header { display: none !important; }
-    
-    /* 2. LAYOUT */
-    html, body { background-color: #f8f9fa !important; margin: 0; width: 100%; overflow-x: hidden; }
-    #id-right, .id-right { margin: 0 !important; width: 100vw !important; max-width: 100vw !important; padding: 0 !important; }
-    .fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-
-    /* 3. CONTAINER */
-    .fb-container { width: 95%; max-width: 1000px; margin: 0 auto; padding: 40px 20px; font-family: "Segoe UI", sans-serif; }
-
-    /* 4. CARDS & FORMS */
-    .fb-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 40px; border: 1px solid #eee; }
-    
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
-    
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: #444; }
-    .form-control { 
-        width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; 
-        font-size: 15px; box-sizing: border-box; transition: border 0.2s;
-    }
-    .form-control:focus { border-color: #667eea; outline: none; }
-    
-    /* 5. BUTTONS */
-    .btn-submit {
-        background: #667eea; color: white; border: none; padding: 14px 40px; border-radius: 30px; 
-        font-weight: bold; cursor: pointer; font-size: 16px; box-shadow: 0 4px 12px rgba(102,126,234,0.3);
-        transition: transform 0.1s;
-    }
-    .btn-submit:hover { transform: translateY(-2px); }
-
-    .btn-outline {
-        background: white; color: #666; border: 1px solid #ddd; padding: 10px 20px; border-radius: 30px; 
-        text-decoration: none; font-weight: bold; display: inline-block;
-    }
-
-    .btn-logout {
-        background: white; color: #dc3545; border: 1px solid #dc3545; 
-        padding: 8px 16px; border-radius: 30px; text-decoration: none; 
-        font-weight: bold; font-size: 13px; display: inline-flex; align-items: center; gap: 5px;
-    }
-    .btn-logout:hover { background: #dc3545; color: white; }
-
-    /* 6. ALERTS */
-    .alert-box { padding: 20px; border-radius: 12px; margin-bottom: 30px; text-align: center; }
-    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-</style>';
-
-$notice = '';
+$notice    = [];
 $hide_form = false;
+$new_ref   = '';
 
-// --- 4. HANDLE SUBMISSION ---
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
-        $notice = '<div class="alert-box alert-error">Security check failed.</div>';
+        $notice = ['error', 'Security check failed.'];
     } else {
-        $d = new DonationFB($db);
-        $d->ref = $_POST['ref'];
-        $d->product_name = $_POST['product_name'];
-        $d->category = $_POST['category'];
-        $d->quantity = (int)$_POST['quantity'];
-        $d->unit = $_POST['unit'];
-        $d->fk_warehouse = (int)$_POST['fk_warehouse'];
-        $d->note = $_POST['note'];
-        
-        // --- SECURE LOGIC ---
-        if ($is_admin) {
-            // Admin can choose any vendor and any status
-            $d->fk_vendor = (int)$_POST['fk_vendor']; 
-            $d->status = $_POST['status']; 
-        } else {
-            // Vendor is LOCKED to themselves and PENDING status
-            $d->fk_vendor = $current_vendor_id; 
-            $d->status = 'Pending'; 
-        }
-        
+        $d               = new DonationFB($db);
+        $d->ref          = GETPOST('ref',          'alphanohtml');
+        $d->product_name = GETPOST('product_name', 'alphanohtml');
+        $d->category     = GETPOST('category',     'alphanohtml');
+        $d->quantity     = GETPOST('quantity',      'int');
+        $d->unit         = GETPOST('unit',          'alphanohtml');
+        $d->fk_warehouse = GETPOST('fk_warehouse',  'int');
+        $d->note         = GETPOST('note',          'restricthtml');
         $d->date_donation = dol_now();
-        
-        if ($d->create($user) > 0) {
-            $dashboard_link = $is_admin ? "donations.php" : "dashboard_vendor.php";
-            $btn_text = $is_admin ? "View All Stock" : "Back to Dashboard";
-            
-            $notice = '<div class="alert-box alert-success">
-                        <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
-                        <h2 style="margin: 0 0 10px 0;">Inventory Logged Successfully!</h2>
-                        <p>Reference: <strong>'.$d->ref.'</strong> has been saved.</p>
-                        <div style="margin-top: 20px;">
-                            <a href="'.$dashboard_link.'" class="btn-submit" style="text-decoration:none;">'.$btn_text.'</a>
-                            <a href="create_donation.php" class="btn-outline" style="margin-left:10px;">+ Add Another</a>
-                        </div>
-                       </div>';
-            $hide_form = true;
+
+        if ($is_admin) {
+            $d->fk_vendor = GETPOST('fk_vendor', 'int');
+            $d->status    = GETPOST('status',     'alphanohtml');
         } else {
-            $notice = '<div class="alert-box alert-error">Error: '.$d->error.'</div>';
+            $d->fk_vendor = $current_vendor_id;
+            $d->status    = 'Pending';
+        }
+
+        if ($d->create($user) > 0) {
+            $hide_form = true;
+            $new_ref   = $d->ref;
+        } else {
+            $notice = ['error', 'Error saving inventory: '.dol_escape_htmltag($d->error)];
         }
     }
 }
 
-// Fetch Dropdowns
+// Dropdowns
 $vendors = [];
-// SECURITY: Only fetch list of vendors if user is ADMIN
 if ($is_admin) {
-    $res = $db->query("SELECT rowid, name FROM ".MAIN_DB_PREFIX."foodbank_vendors ORDER BY name");
-    while($o = $db->fetch_object($res)) $vendors[] = $o;
+    $res = $db->query("SELECT rowid, name FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE status='Active' ORDER BY name");
+    while ($o = $db->fetch_object($res)) $vendors[] = $o;
 }
 
 $warehouses = [];
 $res = $db->query("SELECT rowid, label FROM ".MAIN_DB_PREFIX."foodbank_warehouses ORDER BY label");
-while($o = $db->fetch_object($res)) $warehouses[] = $o;
+while ($o = $db->fetch_object($res)) $warehouses[] = $o;
 
-// --- 5. DISPLAY PAGE ---
-print '<div class="fb-container">';
-
-if (!$hide_form) {
-    $back_link = $is_admin ? "donations.php" : "dashboard_vendor.php";
-    
-    // Header Row
-    print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">';
-    print '<div>';
-    print '<h1 style="margin: 0; color: #2c3e50;">📦 Add Inventory</h1>';
-    print '<p style="color: #666; margin: 5px 0 0 0;">Record new supply into the system</p>';
-    print '</div>';
-    
-    // Actions
-    print '<div style="display: flex; gap: 10px; align-items: center;">';
-    print '<a href="'.$back_link.'" class="btn-outline">Cancel</a>';
-    print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="btn-logout"><span>🚪</span> Logout</a>';
-    print '</div>';
-    print '</div>';
-}
-
-print $notice;
-
-if (!$hide_form) {
-    print '<div class="fb-card">';
-    print '<form method="POST" action="'.basename(__FILE__).'">';
-    print '<input type="hidden" name="token" value="'.newToken().'">';
-
-    print '<h3 style="margin: 0 0 25px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #2c3e50;">📋 Product Details</h3>';
-
-    print '<div class="form-grid">';
-    print '<div class="form-group"><label>Product Name</label><input type="text" name="product_name" class="form-control" required placeholder="e.g. Premium White Rice 50kg"></div>';
-    print '<div class="form-group"><label>Category</label>';
-    print '<select name="category" class="form-control">';
-    print '<option value="">-- Select Category --</option>';
-    $cats = ['Grains','Vegetables','Proteins','Dairy','Beverages','Packaged Foods','Other'];
-    foreach($cats as $c) { print '<option value="'.$c.'">'.$c.'</option>'; }
-    print '</select></div>';
-    print '</div>';
-
-    print '<div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">';
-    print '<div class="form-group"><label>Quantity</label><input type="number" name="quantity" class="form-control" required min="1" value="1"></div>';
-    print '<div class="form-group"><label>Unit</label><select name="unit" class="form-control"><option value="kg">kg</option><option value="bags">bags</option><option value="cartons">cartons</option><option value="liters">liters</option><option value="units">units</option></select></div>';
-    
-    // --- STATUS FIELD (Admin Only) ---
-    if ($is_admin) {
-        print '<div class="form-group"><label>Status</label><select name="status" class="form-control" style="font-weight:bold;">';
-        print '<option value="Received" selected style="color:green;">✅ Received (In Stock)</option>';
-        print '<option value="Pending" style="color:orange;">⏳ Pending (Expected)</option>';
-        print '</select></div>';
-    } else {
-        // Vendors don't see this, strictly Pending
-        print '<input type="hidden" name="status" value="Pending">';
-    }
-    print '</div>';
-
-    print '<h3 style="margin: 30px 0 25px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; color: #2c3e50;">🏭 Source & Storage</h3>';
-
-    print '<div class="form-grid">';
-    
-    // --- VENDOR FIELD (Smart Logic) ---
-    print '<div class="form-group"><label>Supply Source (Vendor)</label>';
-    if ($is_admin) {
-        // Admin sees dropdown
-        print '<select name="fk_vendor" class="form-control" required>';
-        print '<option value="">-- Select Vendor --</option>';
-        foreach($vendors as $v) { print '<option value="'.$v->rowid.'">'.dol_escape_htmltag($v->name).'</option>'; }
-        print '</select>';
-    } else {
-        // Vendor sees ONLY their name (Read Only)
-        print '<input type="text" value="'.dol_escape_htmltag($current_vendor_name).'" class="form-control" disabled style="background:#f9f9f9; color:#666; font-weight:bold;">';
-        print '<input type="hidden" name="fk_vendor" value="'.$current_vendor_id.'">';
-    }
-    print '</div>';
-
-    print '<div class="form-group"><label>Target Warehouse</label><select name="fk_warehouse" class="form-control">';
-    print '<option value="">-- Select Warehouse --</option>';
-    foreach($warehouses as $w) { print '<option value="'.$w->rowid.'">'.dol_escape_htmltag($w->label).'</option>'; }
-    print '</select></div>';
-    print '</div>';
-
-    print '<div class="form-group"><label>Notes / Condition</label><textarea name="note" class="form-control" rows="3" placeholder="Any details about expiry, condition, or batch number..."></textarea></div>';
-
-    print '<div class="form-group"><label>Reference ID (Optional)</label><input type="text" name="ref" class="form-control" placeholder="Leave empty to auto-generate"></div>';
-
-    print '<div style="margin-top: 30px; text-align: center;">';
-    print '<button type="submit" class="btn-submit">💾 Save Inventory Log</button>';
-    print '</div>';
-
-    print '</form>';
-    print '</div>';
-}
-
-print '</div>';
-llxFooter();
+llxHeader('', 'Add Inventory');
 ?>
+<style>
+:root {
+    --accent:       #4f46e5;
+    --accent-light: #e0e7ff;
+    --accent-dark:  #3730a3;
+    --surface:      #f8fafc;
+    --radius:       12px;
+    --shadow:       0 4px 12px rgba(0,0,0,0.06);
+    --font:         "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+<?php if ($is_vendor && !$is_admin) : ?>
+/* Vendor: full-width portal — hide side nav */
+#id-top, .side-nav, .side-nav-vert, #id-left { display: none !important; }
+html, body { background: var(--surface) !important; }
+#id-right { margin: 0 !important; padding: 0 !important; width: 100vw !important; max-width: 100vw !important; }
+.fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+<?php else : ?>
+/* Admin: standard side-nav layout */
+#id-top { display: none !important; }
+.side-nav, .side-nav-vert { top: 0 !important; height: 100vh !important; }
+#id-right { padding-top: 30px !important; background: var(--surface) !important; min-height: 100vh; }
+.fiche { max-width: 100% !important; margin: 0 !important; }
+<?php endif; ?>
+
+.fb-wrap { max-width: 860px; margin: 0 auto; padding: 24px 28px; font-family: var(--font); }
+
+.fb-page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+.fb-page-header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #1e293b; }
+.fb-page-header p  { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff !important; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none !important; border: none; cursor: pointer; font-family: var(--font); transition: background .2s; }
+.btn-primary:hover { background: var(--accent-dark); text-decoration: none !important; }
+.btn-ghost { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #475569 !important; padding: 10px 18px; border-radius: 8px; font-weight: 500; font-size: 14px; text-decoration: none !important; border: 1px solid #e2e8f0; margin-right: 8px; transition: background .15s; }
+.btn-ghost:hover { background: #f1f5f9; text-decoration: none !important; }
+.btn-danger { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #dc2626 !important; padding: 10px 18px; border-radius: 8px; font-weight: 500; font-size: 14px; text-decoration: none !important; border: 1px solid #fecaca; transition: background .15s; }
+.btn-danger:hover { background: #fef2f2; text-decoration: none !important; }
+
+.fb-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+.fb-card-head { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; }
+.fb-card-head h3 { margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #94a3b8; }
+.fb-card-body { padding: 24px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.form-group label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .4px; }
+.form-group input,
+.form-group select,
+.form-group textarea { border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #1e293b; background: #fff; width: 100%; box-sizing: border-box; font-family: var(--font); transition: border-color .15s, box-shadow .15s; }
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); outline: none; }
+.form-group input[disabled] { background: #f8fafc; color: #94a3b8; cursor: not-allowed; }
+
+.fb-notice { padding: 13px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 500; }
+.fb-notice.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+.success-card { background: #f0fdf4; border: 2px solid #16a34a; border-radius: var(--radius); padding: 40px; text-align: center; }
+.success-card .s-icon { font-size: 48px; margin-bottom: 14px; }
+.success-card h2 { color: #15803d; margin: 0 0 8px; font-size: 20px; font-weight: 800; }
+.success-card p { color: #166534; margin: 0 0 24px; font-size: 14px; }
+
+.vendor-lock { background: var(--accent-light); border: 1.5px solid #c7d2fe; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: var(--accent-dark); font-weight: 600; }
+
+.section-divider { border: none; border-top: 1px solid #f1f5f9; margin: 4px 0 22px; }
+</style>
+
+<div class="fb-wrap">
+
+    <div class="fb-page-header">
+        <div>
+            <h1>Add Inventory</h1>
+            <p>Record a new supply log into the system<?php echo $is_vendor ? ' as <strong>'.dol_escape_htmltag($current_vendor_name).'</strong>' : ''; ?></p>
+        </div>
+        <div>
+            <?php if ($is_admin) : ?>
+            <a href="donations.php" class="btn-ghost">← Back to Inventory</a>
+            <?php else : ?>
+            <a href="dashboard_vendor.php" class="btn-ghost">← Dashboard</a>
+            <a href="<?php echo DOL_URL_ROOT; ?>/user/logout.php" class="btn-danger">Logout</a>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php if ($notice) : ?>
+    <div class="fb-notice <?php echo $notice[0]; ?>"><?php echo $notice[1]; ?></div>
+    <?php endif; ?>
+
+    <?php if ($hide_form) : ?>
+    <div class="success-card">
+        <div class="s-icon">📦</div>
+        <h2>Inventory Logged!</h2>
+        <p>Ref: <strong><?php echo dol_escape_htmltag($new_ref); ?></strong> has been saved successfully.</p>
+        <?php if ($is_admin) : ?>
+        <a href="donations.php" class="btn-primary" style="margin-right:10px;">View All Inventory</a>
+        <?php else : ?>
+        <a href="dashboard_vendor.php" class="btn-primary" style="margin-right:10px;">Back to Dashboard</a>
+        <?php endif; ?>
+        <a href="create_donation.php" class="btn-ghost">+ Add Another</a>
+    </div>
+
+    <?php else : ?>
+    <div class="fb-card">
+        <div class="fb-card-head"><h3>Product Details</h3></div>
+        <div class="fb-card-body">
+            <form method="POST" action="<?php echo basename(__FILE__); ?>">
+                <input type="hidden" name="token" value="<?php echo newToken(); ?>">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Product Name <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="product_name" required placeholder="e.g. Premium White Rice 50kg"
+                               value="<?php echo dol_escape_htmltag(GETPOST('product_name', 'alphanohtml')); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select name="category">
+                            <option value="">— Select Category —</option>
+                            <?php foreach (['Grains','Vegetables','Proteins','Dairy','Beverages','Packaged Foods','Other'] as $c) : ?>
+                            <option value="<?php echo $c; ?>" <?php echo GETPOST('category','alphanohtml')==$c?'selected':''; ?>><?php echo $c; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-grid-3">
+                    <div class="form-group">
+                        <label>Quantity <span style="color:#ef4444;">*</span></label>
+                        <input type="number" name="quantity" required min="1"
+                               value="<?php echo (int)GETPOST('quantity','int') ?: 1; ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select name="unit">
+                            <?php foreach (['kg'=>'Kilograms','bags'=>'Bags','cartons'=>'Cartons','liters'=>'Liters','units'=>'Units','crates'=>'Crates'] as $val=>$lbl) : ?>
+                            <option value="<?php echo $val; ?>" <?php echo GETPOST('unit','alphanohtml')==$val?'selected':''; ?>><?php echo $lbl; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php if ($is_admin) : ?>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status">
+                            <option value="Received" selected>Received (In Stock)</option>
+                            <option value="Pending">Pending (Expected)</option>
+                        </select>
+                    </div>
+                    <?php else : ?>
+                    <input type="hidden" name="status" value="Pending">
+                    <?php endif; ?>
+                </div>
+
+                <hr class="section-divider">
+                <p style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:#94a3b8; margin:0 0 18px;">Source &amp; Storage</p>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Supply Source (Vendor)</label>
+                        <?php if ($is_admin) : ?>
+                        <select name="fk_vendor" required>
+                            <option value="">— Select Vendor —</option>
+                            <?php foreach ($vendors as $vnd) : ?>
+                            <option value="<?php echo $vnd->rowid; ?>" <?php echo GETPOST('fk_vendor','int')==$vnd->rowid?'selected':''; ?>><?php echo dol_escape_htmltag($vnd->name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php else : ?>
+                        <div class="vendor-lock"><?php echo dol_escape_htmltag($current_vendor_name); ?></div>
+                        <input type="hidden" name="fk_vendor" value="<?php echo $current_vendor_id; ?>">
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Warehouse</label>
+                        <select name="fk_warehouse">
+                            <option value="">— Select Warehouse —</option>
+                            <?php foreach ($warehouses as $wh) : ?>
+                            <option value="<?php echo $wh->rowid; ?>" <?php echo GETPOST('fk_warehouse','int')==$wh->rowid?'selected':''; ?>><?php echo dol_escape_htmltag($wh->label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes / Condition</label>
+                    <textarea name="note" rows="2" placeholder="Expiry date, batch number, condition..."><?php echo dol_escape_htmltag(GETPOST('note', 'restricthtml')); ?></textarea>
+                </div>
+
+                <div class="form-group" style="max-width:260px;">
+                    <label>Reference ID</label>
+                    <input type="text" name="ref" placeholder="Auto-generated if empty"
+                           value="<?php echo dol_escape_htmltag(GETPOST('ref', 'alphanohtml')); ?>">
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:8px;">
+                    <button type="submit" class="btn-primary">Save Inventory Log</button>
+                    <?php if ($is_admin) : ?>
+                    <a href="donations.php" class="btn-ghost">Cancel</a>
+                    <?php else : ?>
+                    <a href="dashboard_vendor.php" class="btn-ghost">Cancel</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+
+</div>
+
+<?php llxFooter(); ?>

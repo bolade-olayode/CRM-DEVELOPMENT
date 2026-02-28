@@ -1,8 +1,4 @@
 <?php
-/**
- * CUSTOM SUBSCRIBER EDIT PAGE
- * Full Field Set + Top Bar Removed + Validation
- */
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/beneficiary.class.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
@@ -12,227 +8,267 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $langs->load("admin");
-llxHeader('', 'Edit Subscriber');
 
-if (!isset($_GET['id']) || empty($_GET['id'])) {
-    header("Location: beneficiaries.php"); exit;
-}
-
-// --- AGGRESSIVE CSS (Top Bar Removal & Form Styling) ---
-print '<style>
-    /* HIDE TOP BAR ELEMENTS */
-    #id-top, 
-    .tmenu, 
-    .login_block, 
-    div[class*="login_block"], 
-    div[id^="tmenu"],
-    .side-nav-vert .user-menu,
-    .topnav-row { 
-        display: none !important; 
-        height: 0 !important; 
-        overflow: hidden !important; 
-        opacity: 0 !important;
-        visibility: hidden !important;
-    }
-
-    /* FIX LAYOUT SHIFT */
-    body { padding-top: 0 !important; }
-    .side-nav { top: 0 !important; height: 100vh !important; padding-top: 20px !important; z-index: 9999; }
-    #id-right { padding-top: 30px !important; margin-top: 0 !important; }
-
-    /* FORM STYLES */
-    .fb-container { max-width: 1000px; margin: 0 auto; padding: 0 20px; font-family: "Segoe UI", sans-serif; }
-    .fb-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 40px; border: 1px solid #eee; }
-    
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 13px; color: #444; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #667eea; outline: none; }
-
-    .butAction { background: #27ae60; color: white; border: none; padding: 12px 30px; font-size: 16px; cursor: pointer; border-radius: 4px; transition: 0.2s; }
-    .butAction:hover { background: #219150; }
-    .button { text-decoration: none; padding: 10px 20px; border-radius: 4px; }
-    
-    .msg-error { background: #fee2e2; color: #b91c1c; padding: 15px; border-radius: 6px; border: 1px solid #fca5a5; margin-bottom: 20px; }
-    .msg-success { background: #dcfce7; color: #15803d; padding: 20px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 20px; text-align: center; }
-</style>';
+$id = GETPOST('id', 'int');
+if (!$id) { header("Location: beneficiaries.php"); exit; }
 
 $b = new Beneficiary($db);
-$result = $b->fetch((int) $_GET['id']);
-if ($result < 0) { print "Error: Subscriber not found."; exit; }
+if ($b->fetch($id) < 0) { header("Location: beneficiaries.php"); exit; }
 
-$notice = '';
-$hide_form = false;
+$notice = [];
 
-// --- POST HANDLING ---
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
-        $notice = '<div class="msg-error">⚠️ Security Token Expired. Please refresh.</div>';
+        $notice = ['error', 'Security token expired. Please refresh.'];
     } else {
-        // 1. Validate Input
-        $valid = true;
         $errs = [];
 
-        // Date Validation
         $raw_dob = GETPOST('dob', 'alpha');
         if (!empty($raw_dob)) {
-            $d_parts = explode('-', $raw_dob);
-            if (count($d_parts) != 3 || (int)$d_parts[0] < 1900 || (int)$d_parts[0] > (int)date('Y')) {
-                $valid = false;
-                $errs[] = "Invalid Birth Year (must be between 1900 and ".date('Y').")";
+            $parts = explode('-', $raw_dob);
+            if (count($parts) != 3 || (int)$parts[0] < 1900 || (int)$parts[0] > (int)date('Y')) {
+                $errs[] = 'Invalid birth year (must be between 1900 and '.date('Y').')';
             }
         }
 
-        // 2. Assign Data
-        if ($valid) {
-            $b->firstname = GETPOST('firstname', 'alpha');
-            $b->lastname = GETPOST('lastname', 'alpha');
-            $b->phone = GETPOST('phone', 'alpha');
-            $b->email = GETPOST('email', 'alpha');
-            $b->gender = GETPOST('gender', 'alpha');
-            $b->dob = $raw_dob;
-            $b->identification_number = GETPOST('identification_number', 'alpha');
-            
-            $b->address = GETPOST('address', 'restricthtml');
-            $b->city = GETPOST('city', 'alpha');
-            $b->state = GETPOST('state', 'alpha');
-            $b->family_size = GETPOST('family_size', 'int');
-            $b->employment_status = GETPOST('employment_status', 'alpha');
-            
-            $b->subscription_status = GETPOST('subscription_status', 'alpha');
-            $b->subscription_type = GETPOST('subscription_type', 'alpha');
-            $b->note = GETPOST('note', 'restricthtml');
-            
-            // 3. Update Database
+        if (empty($errs)) {
+            $b->firstname           = GETPOST('firstname',           'alphanohtml');
+            $b->lastname            = GETPOST('lastname',            'alphanohtml');
+            $b->email               = GETPOST('email',               'alphanohtml');
+            $b->phone               = GETPOST('phone',               'alphanohtml');
+            $b->gender              = GETPOST('gender',              'alphanohtml');
+            $b->dob                 = $raw_dob;
+            $b->identification_number = GETPOST('identification_number', 'alphanohtml');
+            $b->address             = GETPOST('address',             'restricthtml');
+            $b->city                = GETPOST('city',                'alphanohtml');
+            $b->state               = GETPOST('state',               'alphanohtml');
+            $b->family_size         = GETPOST('family_size',         'int');
+            $b->employment_status   = GETPOST('employment_status',   'alphanohtml');
+            $b->subscription_status = GETPOST('subscription_status', 'alphanohtml');
+            $b->subscription_type   = GETPOST('subscription_type',   'alphanohtml');
+            $b->note                = GETPOST('note',                'restricthtml');
+
             if ($b->update($user) > 0) {
-                $notice = '<div class="msg-success">
-                            <div style="font-size: 30px; margin-bottom: 10px;">✅</div>
-                            <strong>Profile Updated Successfully</strong><br><br>
-                            <a href="view_beneficiary.php?id='.$b->id.'" class="button" style="background:#27ae60; color:white;">View Profile</a>
-                            <a href="beneficiaries.php" class="button" style="background:#f3f4f6; color:#333; margin-left:10px;">Back to List</a>
-                           </div>';
-                $hide_form = true;
+                $notice = ['success', 'Profile updated successfully.'];
             } else {
-                $notice = '<div class="msg-error">Database Error: '.$b->error.'</div>';
+                $notice = ['error', 'Database error: '.dol_escape_htmltag($b->error)];
             }
         } else {
-            $notice = '<div class="msg-error"><strong>Input Error:</strong><br>'.implode('<br>', $errs).'</div>';
+            $notice = ['error', implode('<br>', $errs)];
         }
     }
 }
 
-print '<div class="fb-container">';
+// Live subscription tiers
+$tiers = [];
+$res = $db->query("SELECT tier_type, tier_name, price FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE is_active=1 ORDER BY price ASC");
+if ($res) while ($t = $db->fetch_object($res)) $tiers[] = $t;
 
-// --- HEADER ---
-if (!$hide_form) {
-    print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 20px;">';
-    print '<div><h1 style="margin: 0;">✏️ Edit Subscriber</h1><p style="color:#888; margin: 5px 0 0 0;">Editing: <strong>'.dol_escape_htmltag($b->ref).'</strong></p></div>';
-    print '<a href="view_beneficiary.php?id='.$b->id.'" class="button" style="background:#eee; color:#333;">Cancel</a>';
-    print '</div>';
-}
-
-print $notice;
-
-// --- FORM ---
-if (!$hide_form) {
-    print '<div class="fb-card">';
-    print '<form method="POST" action="'.basename(__FILE__).'?id='.(int)$b->id.'">';
-    print '<input type="hidden" name="token" value="'.newToken().'">';
-
-    // 1. PERSONAL DETAILS
-    print '<h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; color:#2c3e50;">Personal Information</h3>';
-    
-    print '<div class="form-grid">';
-        print '<div class="form-group"><label>First Name</label><input type="text" name="firstname" value="'.dol_escape_htmltag($b->firstname).'" required></div>';
-        print '<div class="form-group"><label>Last Name</label><input type="text" name="lastname" value="'.dol_escape_htmltag($b->lastname).'" required></div>';
-    print '</div>';
-
-    print '<div class="form-grid">';
-        print '<div class="form-group"><label>Email Address</label><input type="email" name="email" value="'.dol_escape_htmltag($b->email).'"></div>';
-        print '<div class="form-group"><label>Phone Number</label><input type="text" name="phone" value="'.dol_escape_htmltag($b->phone).'"></div>';
-    print '</div>';
-
-    print '<div class="form-grid">';
-        print '<div class="form-group"><label>Gender</label>';
-        print '<select name="gender">';
-        print '<option value="">-- Select --</option>';
-        print '<option value="Male" '.($b->gender == 'Male' ? 'selected' : '').'>Male</option>';
-        print '<option value="Female" '.($b->gender == 'Female' ? 'selected' : '').'>Female</option>';
-        print '</select></div>';
-        
-        print '<div class="form-group"><label>Date of Birth</label><input type="date" name="dob" value="'.$b->dob.'"></div>';
-    print '</div>';
-    
-    print '<div class="form-group"><label>NIN / ID Number</label><input type="text" name="identification_number" value="'.dol_escape_htmltag($b->identification_number).'" placeholder="National Identity Number"></div>';
-
-    // 2. LOCATION & HOUSEHOLD
-    print '<h3 style="margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; color:#2c3e50;">Address & Household</h3>';
-    print '<div class="form-group"><label>Street Address</label><textarea name="address" rows="2">'.dol_escape_htmltag($b->address).'</textarea></div>';
-    
-    print '<div class="form-grid">';
-        print '<div class="form-group"><label>City / LGA</label><input type="text" name="city" value="'.dol_escape_htmltag($b->city).'"></div>';
-        print '<div class="form-group"><label>State</label><input type="text" name="state" value="'.dol_escape_htmltag($b->state).'"></div>';
-    print '</div>';
-
-    print '<div class="form-grid">';
-        print '<div class="form-group"><label>Family Size</label><input type="number" name="family_size" value="'.(int)$b->family_size.'" min="1"></div>';
-        
-        print '<div class="form-group"><label>Employment Status</label>';
-        print '<select name="employment_status">';
-        print '<option value="">-- Select --</option>';
-        $opts = ['Employed', 'Unemployed', 'Self-Employed', 'Student', 'Retired'];
-        foreach($opts as $op) {
-            $sel = ($b->employment_status == $op) ? 'selected' : '';
-            print '<option value="'.$op.'" '.$sel.'>'.$op.'</option>';
-        }
-        print '</select></div>';
-    print '</div>';
-
-    // 3. SUBSCRIPTION MANAGEMENT
-    print '<h3 style="margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; color: #667eea;">👑 Subscription Management</h3>';
-    print '<div class="form-grid">';
-
-        // Status Dropdown
-        print '<div class="form-group"><label>Subscription Status</label>';
-        print '<select name="subscription_status" style="font-weight:bold;">';
-        $statuses = ['Pending', 'Active', 'Inactive', 'Expired'];
-        foreach ($statuses as $s) {
-            $selected = ($b->subscription_status == $s) ? 'selected' : '';
-            $style = ($s == 'Active') ? 'color:green;' : (($s == 'Inactive') ? 'color:red;' : '');
-            print '<option value="'.$s.'" '.$selected.' style="'.$style.'">'.$s.'</option>';
-        }
-        print '</select></div>';
-
-        // Plan Dropdown (Dynamic)
-        print '<div class="form-group"><label>Active Plan</label>';
-        print '<select name="subscription_type">';
-        print '<option value="">-- No Plan --</option>';
-        
-        $sql_tiers = "SELECT tier_type, tier_name, price FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE is_active = 1";
-        $res_tiers = $db->query($sql_tiers);
-        
-        if ($res_tiers && $db->num_rows($res_tiers) > 0) {
-            while ($tier = $db->fetch_object($res_tiers)) {
-                $selected = ($b->subscription_type == $tier->tier_type) ? 'selected' : '';
-                print '<option value="'.$tier->tier_type.'" '.$selected.'>'.$tier->tier_name.' ('.price($tier->price).')</option>';
-            }
-        }
-        print '</select></div>';
-    print '</div>';
-
-    print '<div class="form-group"><label>Admin Internal Notes</label><textarea name="note" rows="3" placeholder="Private notes visible only to admins...">'.dol_escape_htmltag($b->note).'</textarea></div>';
-
-    // SAVE BUTTON
-    print '<div style="margin-top: 30px; text-align: center; border-top: 1px solid #eee; padding-top: 30px;">';
-    print '<button type="submit" class="butAction" style="padding: 14px 50px; font-weight: bold;">Save Changes</button>';
-    print '</div>';
-
-    print '</form>';
-    print '</div>'; // End Card
-}
-
-print '</div>'; // End Container
-
-llxFooter();
+llxHeader('', 'Edit Subscriber');
 ?>
+<style>
+:root {
+    --accent:       #4f46e5;
+    --accent-light: #e0e7ff;
+    --accent-dark:  #3730a3;
+    --surface:      #f8fafc;
+    --radius:       12px;
+    --shadow:       0 4px 12px rgba(0,0,0,0.06);
+    --font:         "Segoe UI", Roboto, Arial, sans-serif;
+}
+#id-top { display: none !important; }
+.side-nav, .side-nav-vert { top: 0 !important; height: 100vh !important; }
+#id-right { padding-top: 30px !important; background: var(--surface) !important; min-height: 100vh; }
+.fiche { max-width: 100% !important; margin: 0 !important; }
+
+.fb-wrap { max-width: 900px; margin: 0 auto; padding: 24px 28px; font-family: var(--font); }
+
+.fb-page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+.fb-page-header h1 { margin: 0; font-size: 22px; font-weight: 800; color: #1e293b; }
+.fb-page-header p  { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff !important; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none !important; border: none; cursor: pointer; font-family: var(--font); transition: background .2s; }
+.btn-primary:hover { background: var(--accent-dark); text-decoration: none !important; }
+.btn-ghost { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #475569 !important; padding: 10px 18px; border-radius: 8px; font-weight: 500; font-size: 14px; text-decoration: none !important; border: 1px solid #e2e8f0; margin-right: 8px; transition: background .15s; }
+.btn-ghost:hover { background: #f1f5f9; text-decoration: none !important; }
+
+.fb-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+.fb-card-head { padding: 16px 24px; border-bottom: 1px solid #f1f5f9; }
+.fb-card-head h3 { margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #94a3b8; }
+.fb-card-body { padding: 24px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.form-group label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .4px; }
+.form-group input,
+.form-group select,
+.form-group textarea { border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #1e293b; background: #fff; width: 100%; box-sizing: border-box; font-family: var(--font); transition: border-color .15s, box-shadow .15s; }
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,.1); outline: none; }
+
+.fb-notice { padding: 13px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 500; }
+.fb-notice.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.fb-notice.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+.section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #94a3b8; margin: 0 0 18px; }
+.section-divider { border: none; border-top: 1px solid #f1f5f9; margin: 4px 0 22px; }
+
+.plan-accent { color: var(--accent); font-size: 12px; }
+</style>
+
+<div class="fb-wrap">
+
+    <div class="fb-page-header">
+        <div>
+            <h1>Edit Subscriber</h1>
+            <p>Ref: <strong><?php echo dol_escape_htmltag($b->ref); ?></strong> &middot; <?php echo dol_escape_htmltag(trim($b->firstname.' '.$b->lastname)); ?></p>
+        </div>
+        <div>
+            <a href="view_beneficiary.php?id=<?php echo $b->id; ?>" class="btn-ghost">← View Profile</a>
+            <a href="beneficiaries.php" class="btn-ghost">All Subscribers</a>
+        </div>
+    </div>
+
+    <?php if ($notice) : ?>
+    <div class="fb-notice <?php echo $notice[0]; ?>"><?php echo $notice[1]; ?></div>
+    <?php endif; ?>
+
+    <form method="POST" action="<?php echo basename(__FILE__).'?id='.(int)$b->id; ?>">
+        <input type="hidden" name="token" value="<?php echo newToken(); ?>">
+
+        <!-- Personal Information -->
+        <div class="fb-card">
+            <div class="fb-card-head"><h3>Personal Information</h3></div>
+            <div class="fb-card-body">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>First Name <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="firstname" required value="<?php echo dol_escape_htmltag($b->firstname); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="lastname" required value="<?php echo dol_escape_htmltag($b->lastname); ?>">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" value="<?php echo dol_escape_htmltag($b->email); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="phone" value="<?php echo dol_escape_htmltag($b->phone); ?>">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select name="gender">
+                            <option value="">— Select —</option>
+                            <option value="Male"   <?php echo $b->gender=='Male'  ?'selected':''; ?>>Male</option>
+                            <option value="Female" <?php echo $b->gender=='Female'?'selected':''; ?>>Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" name="dob" value="<?php echo dol_escape_htmltag($b->dob); ?>">
+                    </div>
+                </div>
+
+                <div class="form-group" style="max-width:400px;">
+                    <label>NIN / ID Number</label>
+                    <input type="text" name="identification_number" placeholder="National Identity Number"
+                           value="<?php echo dol_escape_htmltag($b->identification_number); ?>">
+                </div>
+            </div>
+        </div>
+
+        <!-- Address & Household -->
+        <div class="fb-card">
+            <div class="fb-card-head"><h3>Address &amp; Household</h3></div>
+            <div class="fb-card-body">
+
+                <div class="form-group">
+                    <label>Street Address</label>
+                    <textarea name="address" rows="2"><?php echo dol_escape_htmltag($b->address); ?></textarea>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>City / LGA</label>
+                        <input type="text" name="city" value="<?php echo dol_escape_htmltag($b->city); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" name="state" value="<?php echo dol_escape_htmltag($b->state); ?>">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Family Size</label>
+                        <input type="number" name="family_size" min="1" value="<?php echo (int)$b->family_size ?: 1; ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Employment Status</label>
+                        <select name="employment_status">
+                            <option value="">— Select —</option>
+                            <?php foreach (['Employed','Unemployed','Self-Employed','Student','Retired'] as $opt) : ?>
+                            <option value="<?php echo $opt; ?>" <?php echo $b->employment_status==$opt?'selected':''; ?>><?php echo $opt; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Management -->
+        <div class="fb-card">
+            <div class="fb-card-head"><h3>Subscription Management</h3></div>
+            <div class="fb-card-body">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Subscription Status</label>
+                        <select name="subscription_status">
+                            <?php foreach (['Pending','Active','Inactive','Expired'] as $st) : ?>
+                            <option value="<?php echo $st; ?>" <?php echo $b->subscription_status==$st?'selected':''; ?>><?php echo $st; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Active Plan</label>
+                        <select name="subscription_type">
+                            <option value="">— No Plan —</option>
+                            <?php foreach ($tiers as $tier) : ?>
+                            <option value="<?php echo dol_escape_htmltag($tier->tier_type); ?>"
+                                    <?php echo $b->subscription_type==$tier->tier_type?'selected':''; ?>>
+                                <?php echo dol_escape_htmltag($tier->tier_name); ?> (<?php echo price($tier->price); ?>)
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Admin Internal Notes</label>
+                    <textarea name="note" rows="3" placeholder="Private notes visible only to admins..."><?php echo dol_escape_htmltag($b->note); ?></textarea>
+                </div>
+
+                <hr class="section-divider">
+                <div style="display:flex; gap:10px;">
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                    <a href="view_beneficiary.php?id=<?php echo $b->id; ?>" class="btn-ghost">Cancel</a>
+                </div>
+            </div>
+        </div>
+
+    </form>
+
+</div>
+
+<?php llxFooter(); ?>
