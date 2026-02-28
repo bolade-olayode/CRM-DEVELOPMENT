@@ -108,6 +108,11 @@ if ($action == 'register' && empty($error)) {
                             '" . $db->escape($account_no) . "', NOW(), 'Pending')";
                     
                     if ($db->query($sql)) {
+                        // Auto-grant FoodbankCRM permissions so menu is visible and trigger can route
+                        foreach (array(100001, 100011, 100012, 100013) as $right_id) {
+                            $db->query("INSERT IGNORE INTO ".MAIN_DB_PREFIX."user_rights (entity, fk_user, fk_id) VALUES (1, ".(int)$uid.", ".(int)$right_id.")");
+                        }
+
                         // --- OTP GENERATION ---
                         $otp = random_int(100000, 999999);
                         $db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."foodbank_email_verification (email VARCHAR(255) PRIMARY KEY, code VARCHAR(10), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");

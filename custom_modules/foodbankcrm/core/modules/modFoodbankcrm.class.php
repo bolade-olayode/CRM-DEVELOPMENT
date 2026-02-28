@@ -314,7 +314,7 @@ class modFoodbankcrm extends DolibarrModules
             'titre'     => 'Settings',
             'mainmenu'  => 'foodbankcrm',
             'leftmenu'  => 'foodbankcrm_setup',
-            'url'       => '/admin/foodbankcrm.php?save_lastsearch_values=1',
+            'url'       => '/custom/foodbankcrm/admin/setup.php',
             'langs'     => 'foodbankcrm@foodbankcrm',
             'position'  => 1410,
             'enabled'   => '1',

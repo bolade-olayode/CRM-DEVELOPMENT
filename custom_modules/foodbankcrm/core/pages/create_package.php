@@ -108,12 +108,24 @@ if (!$hide_form) {
     // Initial Row
     print '<tr>
             <td><input type="text" name="product_name[]" class="item-input" required placeholder="Item name"></td>
-            <td><input type="number" name="quantity[]" class="item-input" value="1"></td>
-            <td><select name="unit[]" class="item-input"><option>kg</option><option>units</option><option>liters</option><option>bags</option></select></td>
-            <td><input type="number" name="unit_price[]" class="item-input" value="0"></td>
+            <td><input type="number" name="quantity[]" class="item-input" value="1" min="0" step="0.01"></td>
+            <td><input type="text" name="unit[]" class="item-input" list="unit-list" placeholder="kg, units..." value="kg"></td>
+            <td><input type="number" name="unit_price[]" class="item-input" value="0" min="0" step="0.01"></td>
             <td><button type="button" class="button small" style="background:#dc3545; color:white;" onclick="removeRow(this)">X</button></td>
            </tr>';
     print '</tbody></table>';
+    print '<datalist id="unit-list">
+            <option value="kg">
+            <option value="g">
+            <option value="units">
+            <option value="packs">
+            <option value="bags">
+            <option value="boxes">
+            <option value="cartons">
+            <option value="liters">
+            <option value="crates">
+            <option value="tonnes">
+           </datalist>';
     
     print '<div style="margin-top: 10px;">';
     print '<button type="button" class="button small" style="background:#667eea; color:white;" onclick="addRow()">+ Add Another Item</button>';
@@ -136,8 +148,10 @@ function addRow() {
     var row = table.rows[0].cloneNode(true);
     var inputs = row.getElementsByTagName("input");
     for(var i=0; i<inputs.length; i++) inputs[i].value = "";
+    var selects = row.getElementsByTagName("select");
+    for(var i=0; i<selects.length; i++) selects[i].selectedIndex = 0;
     inputs[1].value = "1"; // Default qty
-    inputs[3].value = "0"; // Default price
+    inputs[2].value = "0"; // Default price (index 2 because select is not an input element)
     table.appendChild(row);
 }
 function removeRow(btn) {

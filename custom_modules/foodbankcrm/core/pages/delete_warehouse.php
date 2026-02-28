@@ -28,18 +28,52 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         llxFooter(); exit;
     }
 
-    print '<div class="warning">';
-    print '<p><strong>Are you sure you want to delete this warehouse?</strong></p>';
-    print '<p><strong>Ref:</strong> '.dol_escape_htmltag($obj->ref).'</p>';
-    print '<p><strong>Name:</strong> '.dol_escape_htmltag($obj->label).'</p>';
-    print '<p><strong>Address:</strong> '.dol_escape_htmltag($obj->address ?: '—').'</p>';
-    print '</div>';
+    // Pre-check: does this warehouse have any distributions?
+    $r_dist = $db->query("SELECT COUNT(*) as c FROM ".MAIN_DB_PREFIX."foodbank_distributions WHERE fk_warehouse = ".$id);
+    $dist_count = $r_dist ? (int)$db->fetch_object($r_dist)->c : 0;
 
-    print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'">';
-    print '<input type="hidden" name="token" value="'.newToken().'">';
-    print '<input class="button butActionDelete" type="submit" value="Yes, delete">';
-    print ' <a class="button" href="warehouses.php">Cancel</a>';
-    print '</form>';
+    if ($dist_count > 0) {
+        // Block deletion and show prominent warning
+        print '<div style="background:#fff3cd; border:3px solid #f59e0b; border-radius:12px; padding:30px; margin-bottom:20px;">';
+        print '<div style="font-size:48px; text-align:center; margin-bottom:15px;">⚠️</div>';
+        print '<h2 style="color:#92400e; text-align:center; margin:0 0 15px;">This Warehouse Contains Goods</h2>';
+        print '<p style="font-size:15px; color:#78350f; text-align:center; margin:0 0 20px;">';
+        print '<strong>'.dol_escape_htmltag($obj->label).'</strong> (Ref: '.dol_escape_htmltag($obj->ref).')';
+        print ' is linked to <strong>'.$dist_count.' distribution(s)</strong>.</p>';
+        print '<div style="background:#fef3c7; border-radius:8px; padding:20px; margin-bottom:20px;">';
+        print '<p style="font-weight:700; color:#92400e; margin:0 0 10px;">Before you can delete this warehouse, you must:</p>';
+        print '<ol style="color:#78350f; margin:0; padding-left:20px; line-height:2;">';
+        print '<li>Go to each linked distribution and reassign it to a different warehouse</li>';
+        print '<li>Or move all goods to another warehouse first</li>';
+        print '<li>Once no distributions are linked, you can safely delete it</li>';
+        print '</ol>';
+        print '</div>';
+        print '<p style="text-align:center; color:#92400e; font-size:13px; margin:0;">Deleting a warehouse that contains active distributions would break your records and cannot be done safely.</p>';
+        print '</div>';
+        print '<div style="text-align:center;">';
+        print '<a href="warehouses.php" class="button">← Back to Warehouses</a>';
+        print '</div>';
+    } else {
+        // No linked records — show standard confirm
+        print '<div style="background:#fee2e2; border:3px solid #ef4444; border-radius:12px; padding:30px; margin-bottom:20px;">';
+        print '<div style="font-size:48px; text-align:center; margin-bottom:15px;">🗑️</div>';
+        print '<h2 style="color:#991b1b; text-align:center; margin:0 0 15px;">Confirm Warehouse Deletion</h2>';
+        print '<p style="text-align:center; color:#7f1d1d; font-size:15px; margin:0 0 20px;">You are about to permanently delete the following warehouse. This action cannot be undone.</p>';
+        print '<table style="width:100%; max-width:400px; margin:0 auto 20px; border-collapse:collapse;">';
+        print '<tr><td style="padding:8px 12px; font-weight:600; color:#991b1b;">Ref:</td><td style="padding:8px 12px;">'.dol_escape_htmltag($obj->ref).'</td></tr>';
+        print '<tr style="background:#fef2f2;"><td style="padding:8px 12px; font-weight:600; color:#991b1b;">Name:</td><td style="padding:8px 12px;">'.dol_escape_htmltag($obj->label).'</td></tr>';
+        print '<tr><td style="padding:8px 12px; font-weight:600; color:#991b1b;">Address:</td><td style="padding:8px 12px;">'.dol_escape_htmltag($obj->address ?: '—').'</td></tr>';
+        print '</table>';
+        print '</div>';
+
+        print '<div style="text-align:center;">';
+        print '<form method="POST" action="'.basename(__FILE__).'?id='.$id.'" style="display:inline;">';
+        print '<input type="hidden" name="token" value="'.newToken().'">';
+        print '<input class="button butActionDelete" type="submit" value="Yes, permanently delete this warehouse">';
+        print '</form>';
+        print ' <a class="button" href="warehouses.php" style="margin-left:10px;">Cancel</a>';
+        print '</div>';
+    }
 
 } else {
     if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {

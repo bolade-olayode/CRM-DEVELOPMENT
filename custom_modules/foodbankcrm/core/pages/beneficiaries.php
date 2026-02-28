@@ -11,6 +11,29 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $langs->load("admin");
+
+// --- QUICK ACTIONS (before header output) ---
+$notice = '';
+$action = GETPOST('action', 'alpha');
+
+if ($action == 'approve' && GETPOST('id', 'int')) {
+    if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
+        $notice = ['error', 'Security check failed.'];
+    } else {
+        $bid = (int)GETPOST('id', 'int');
+        $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_beneficiaries SET subscription_status = 'Active' WHERE rowid = ".$bid;
+        if ($db->query($sql)) {
+            // Also activate the linked Dolibarr user account
+            $db->query("UPDATE ".MAIN_DB_PREFIX."user u
+                        JOIN ".MAIN_DB_PREFIX."foodbank_beneficiaries b ON b.fk_user = u.rowid
+                        SET u.statut = 1 WHERE b.rowid = ".$bid);
+            $notice = ['success', 'Subscriber account activated successfully.'];
+        } else {
+            $notice = ['error', 'Error: '.$db->lasterror()];
+        }
+    }
+}
+
 llxHeader('', 'Subscriber Management');
 ?>
 <style>
@@ -74,10 +97,17 @@ llxHeader('', 'Subscriber Management');
 .badge-default  { background: #f1f5f9; color: #475569; }
 
 /* Actions */
-.act-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; text-decoration: none; border: 1px solid #e2e8f0; color: #475569 !important; background: #fff; margin-left: 6px; transition: all .15s; }
+.act-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; text-decoration: none; border: 1px solid #e2e8f0; color: #475569 !important; background: #fff; margin-left: 6px; transition: all .15s; cursor: pointer; }
 .act-btn:hover { background: #f1f5f9; }
 .act-btn.danger { color: #ef4444 !important; border-color: #fecaca; }
 .act-btn.danger:hover { background: #fef2f2; }
+.act-btn.approve { color: #15803d !important; border-color: #bbf7d0; background: #f0fdf4; }
+.act-btn.approve:hover { background: #dcfce7; }
+
+/* Notice */
+.fb-notice { padding: 13px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; font-weight: 500; }
+.fb-notice.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.fb-notice.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
 .empty-state { text-align: center; padding: 70px 40px; color: #94a3b8; }
 .empty-state h3 { font-size: 18px; color: #64748b; margin: 0 0 8px; }
@@ -110,6 +140,10 @@ $res = $db->query($sql);
             <a href="create_beneficiary.php" class="btn-primary">+ Add Subscriber</a>
         </div>
     </div>
+
+    <?php if ($notice) : ?>
+    <div class="fb-notice <?php echo $notice[0]; ?>"><?php echo $notice[1]; ?></div>
+    <?php endif; ?>
 
     <!-- Stats Strip -->
     <div class="stats-strip">
@@ -173,6 +207,17 @@ $res = $db->query($sql);
                     <td style="text-align:right; white-space:nowrap;">
                         <a href="view_beneficiary.php?id=<?php echo $obj->rowid; ?>" class="act-btn">View</a>
                         <a href="edit_beneficiary.php?id=<?php echo $obj->rowid; ?>" class="act-btn">✏️ Edit</a>
+                        <?php if ($status !== 'Active') : ?>
+                        <form method="POST" action="beneficiaries.php" style="display:inline;">
+                            <input type="hidden" name="token" value="<?php echo newToken(); ?>">
+                            <input type="hidden" name="action" value="approve">
+                            <input type="hidden" name="id" value="<?php echo $obj->rowid; ?>">
+                            <button type="submit" class="act-btn approve"
+                                onclick="return confirm('Activate <?php echo dol_escape_js($name); ?>\'s account?')">
+                                Manage Subscriber's Account
+                            </button>
+                        </form>
+                        <?php endif; ?>
                         <a href="delete_beneficiary.php?id=<?php echo $obj->rowid; ?>" class="act-btn danger"
                            onclick="return confirm('Delete subscriber <?php echo dol_escape_js($name); ?>?')">🗑️</a>
                     </td>

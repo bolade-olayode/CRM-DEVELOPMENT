@@ -52,8 +52,8 @@ class VendorFB extends CommonObject
         $sql .= "phone, email, address, description, status, ";
         // Extended
         $sql .= "registration_number, tax_id, website, bank_name, bank_account_number, payment_terms, ";
-        // System
-        $sql .= "entity, date_creation";
+        // System (entity omitted — uses DB DEFAULT 1)
+        $sql .= "date_creation";
         $sql .= ") VALUES (";
         
         $sql .= "'" . $this->db->escape($this->ref) . "',";
@@ -76,7 +76,6 @@ class VendorFB extends CommonObject
         $sql .= "'" . $this->db->escape($this->bank_account_number) . "',";
         $sql .= "'" . $this->db->escape($this->payment_terms) . "',";
 
-        $sql .= (int)$this->entity . ",";
         $sql .= "NOW()";
         $sql .= ")";
 

@@ -1,7 +1,6 @@
 <?php
 /**
- * CUSTOM SUBSCRIBER PROFILE VIEW
- * Matches DB Columns: gender, dob, city, state, family_size, employment_status, identification_number
+ * ADMIN: Subscriber Profile View
  */
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/beneficiary.class.php';
@@ -17,163 +16,193 @@ if (!$id) accessforbidden();
 $object = new Beneficiary($db);
 if ($object->fetch($id) < 1) accessforbidden();
 
-// Load User Account Status (for Login access)
-$user_static = new User($db);
+// Resolve linked Dolibarr user (fk_user first, email fallback)
+$user_login        = '';
 $user_status_label = 'No Login Account';
-$user_status_color = 'bg-gray';
+$user_status_class = 'badge-default';
+$user_link         = '';
 
-if ($object->email) {
-    // Try to find the linked Dolibarr user by email
-    $result = $user_static->fetch('', $object->email); 
-    if ($result > 0) {
-        $user_status_label = ($user_static->statut == 1) ? 'Login Enabled' : 'Login Disabled';
-        $user_status_color = ($user_static->statut == 1) ? 'bg-green' : 'bg-red';
+if (!empty($object->fk_user)) {
+    $u_res = $db->query("SELECT rowid, login, statut FROM ".MAIN_DB_PREFIX."user WHERE rowid = ".(int)$object->fk_user);
+    if ($u_res && ($u_obj = $db->fetch_object($u_res))) {
+        $user_login        = $u_obj->login;
+        $user_status_label = $u_obj->statut == 1 ? 'Login Enabled' : 'Login Disabled';
+        $user_status_class = $u_obj->statut == 1 ? 'badge-active' : 'badge-expired';
+        $user_link         = DOL_URL_ROOT.'/user/card.php?id='.$u_obj->rowid;
+    }
+} elseif ($object->email) {
+    $u_res = $db->query("SELECT rowid, login, statut FROM ".MAIN_DB_PREFIX."user WHERE email = '".$db->escape($object->email)."' LIMIT 1");
+    if ($u_res && ($u_obj = $db->fetch_object($u_res))) {
+        $user_login        = $u_obj->login;
+        $user_status_label = $u_obj->statut == 1 ? 'Login Enabled' : 'Login Disabled';
+        $user_status_class = $u_obj->statut == 1 ? 'badge-active' : 'badge-expired';
+        $user_link         = DOL_URL_ROOT.'/user/card.php?id='.$u_obj->rowid;
     }
 }
 
+$order_count = (int)$db->fetch_object($db->query("SELECT COUNT(*) as c FROM ".MAIN_DB_PREFIX."foodbank_distributions WHERE fk_beneficiary = ".(int)$id))->c;
+
+$name         = trim($object->firstname.' '.$object->lastname);
+$initial      = strtoupper(mb_substr($object->firstname ?: $object->lastname ?: '?', 0, 1));
+$status       = !empty($object->subscription_status) ? $object->subscription_status : 'Pending';
+$status_class = $status == 'Active' ? 'badge-active' : ($status == 'Expired' ? 'badge-expired' : 'badge-pending');
+
 llxHeader('', 'Subscriber Profile');
-
-// --- 1. AGGRESSIVE CSS TO HIDE TOP BAR & MENU ---
-print '<style>
-    /* HIDE TOP BAR ELEMENTS */
-    #id-top, 
-    .tmenu, 
-    .login_block, 
-    div[class*="login_block"], 
-    div[id^="tmenu"],
-    .side-nav-vert .user-menu,
-    .topnav-row { 
-        display: none !important; 
-        height: 0 !important; 
-        overflow: hidden !important; 
-        opacity: 0 !important;
-        visibility: hidden !important;
-    }
-
-    /* FIX LAYOUT SHIFT */
-    body { padding-top: 0 !important; }
-    .side-nav { top: 0 !important; height: 100vh !important; padding-top: 20px !important; z-index: 9999; }
-    #id-right { padding-top: 30px !important; margin-top: 0 !important; }
-
-    /* PROFILE PAGE STYLES */
-    .fb-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; font-family: "Segoe UI", sans-serif; }
-    
-    .profile-header { background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border: 1px solid #e0e0e0; }
-    .profile-info h1 { margin: 0; font-size: 24px; color: #2c3e50; font-weight: 700; }
-    .profile-info p { margin: 5px 0 0; color: #7f8c8d; font-size: 14px; }
-    
-    .grid-container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-    .card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid #e0e0e0; }
-    .card h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px; color: #34495e; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    
-    .data-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f9f9f9; align-items: center; }
-    .data-row:last-child { border-bottom: none; }
-    .label { color: #95a5a6; font-weight: 500; font-size: 13px; }
-    .value { color: #2c3e50; font-weight: 600; font-size: 14px; text-align: right; }
-    
-    .badge { padding: 6px 12px; border-radius: 4px; font-size: 11px; color: #fff; font-weight: bold; text-transform: uppercase; }
-    .bg-green { background: #27ae60; } 
-    .bg-orange { background: #f39c12; } 
-    .bg-red { background: #c0392b; }
-    .bg-gray { background: #95a5a6; }
-    
-    .btn-action { text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; font-size: 14px; margin-left: 10px; display: inline-block; transition: 0.2s; border: 1px solid transparent; }
-    .btn-edit { background: #3498db; color: #fff; } .btn-edit:hover { background: #2980b9; }
-    .btn-back { background: #fff; color: #7f8c8d; border-color: #ddd; } .btn-back:hover { background: #f9f9f9; }
-</style>';
-
-// --- CONTENT WRAPPER ---
-print '<div class="fb-container">';
-
-// --- HEADER SECTION ---
-print '<div class="profile-header">';
-    print '<div class="profile-info">';
-        print '<h1>'.dol_escape_htmltag($object->firstname.' '.$object->lastname).'</h1>';
-        print '<p>Subscriber Ref: <strong>'.dol_escape_htmltag($object->ref).'</strong> &nbsp;|&nbsp; Joined: '.dol_print_date($db->jdate($object->date_creation), 'day').'</p>';
-    print '</div>';
-    
-    print '<div class="actions">';
-        print '<a href="beneficiaries.php" class="btn-action btn-back">← Back to List</a>';
-        print '<a href="edit_beneficiary.php?id='.$object->id.'" class="btn-action btn-edit">Edit Profile</a>';
-    print '</div>';
-print '</div>';
-
-// --- MAIN GRID ---
-print '<div class="grid-container">';
-
-    // --- LEFT COLUMN ---
-    print '<div>';
-
-        // 1. PERSONAL INFORMATION
-        print '<div class="card">';
-        print '<h3>Personal Information</h3>';
-        print '<div class="data-row"><span class="label">Email</span> <span class="value">'.($object->email ? dol_escape_htmltag($object->email) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">Phone</span> <span class="value">'.($object->phone ? dol_escape_htmltag($object->phone) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">Gender</span> <span class="value">'.($object->gender ? dol_escape_htmltag($object->gender) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">Date of Birth</span> <span class="value">'.($object->dob ? dol_print_date($object->dob, 'day') : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">NIN / ID Number</span> <span class="value">'.($object->identification_number ? dol_escape_htmltag($object->identification_number) : '<span style="color:#ccc">Not Provided</span>').'</span></div>';
-        print '</div>';
-
-        // 2. ADDRESS & LOCATION
-        print '<div class="card">';
-        print '<h3>Address & Location</h3>';
-        print '<div class="data-row"><span class="label">Street Address</span> <span class="value">'.($object->address ? dol_escape_htmltag($object->address) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">City / LGA</span> <span class="value">'.($object->city ? dol_escape_htmltag($object->city) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">State</span> <span class="value">'.($object->state ? dol_escape_htmltag($object->state) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '</div>';
-
-        // 3. HOUSEHOLD DETAILS
-        print '<div class="card">';
-        print '<h3>Household & Employment</h3>';
-        // Using 'family_size' column specifically
-        print '<div class="data-row"><span class="label">Family Size</span> <span class="value">'.((int)$object->family_size > 0 ? (int)$object->family_size.' Members' : '<span style="color:#ccc">1 Member</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">Employment Status</span> <span class="value">'.($object->employment_status ? dol_escape_htmltag($object->employment_status) : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '</div>';
-
-    print '</div>'; // End Left Column
-
-    // --- RIGHT COLUMN ---
-    print '<div>';
-
-        // 4. SUBSCRIPTION STATUS
-        print '<div class="card">';
-        print '<h3>Subscription Status</h3>';
-        
-        $status_label = !empty($object->subscription_status) ? $object->subscription_status : 'Pending';
-        $status_color = 'bg-orange'; // Default Pending
-        if($status_label == 'Active') $status_color = 'bg-green';
-        if($status_label == 'Expired' || $status_label == 'Inactive') $status_color = 'bg-red';
-        
-        print '<div style="text-align:center; padding: 25px 0;">';
-            print '<span class="badge '.$status_color.'" style="font-size:14px; padding: 8px 16px;">'.dol_escape_htmltag($status_label).'</span>';
-            print '<p style="margin-top:15px; color:#7f8c8d;">Current Plan:<br><strong style="color:#2c3e50; font-size:16px;">'.($object->subscription_type ? dol_escape_htmltag($object->subscription_type) : 'No Plan Selected').'</strong></p>';
-        print '</div>';
-        
-        print '<div class="data-row"><span class="label">Start Date</span> <span class="value">'.($object->subscription_start_date ? dol_print_date($object->subscription_start_date, 'day') : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '<div class="data-row"><span class="label">Renewal Due</span> <span class="value">'.($object->subscription_end_date ? dol_print_date($object->subscription_end_date, 'day') : '<span style="color:#ccc">--</span>').'</span></div>';
-        print '</div>';
-
-        // 5. ADMIN NOTES
-        if (!empty($object->note)) {
-            print '<div class="card" style="background:#fffbe6; border-color:#ffe58f;">';
-            print '<h3 style="color:#d48806; border-bottom-color:#ffe58f;">Admin Notes</h3>';
-            print '<p style="font-size:13px; color:#555; line-height:1.5;">'.dol_escape_htmltag($object->note).'</p>';
-            print '</div>';
-        }
-
-        // 6. SYSTEM INFO
-        print '<div class="card">';
-        print '<h3>System Account</h3>';
-        print '<div class="data-row"><span class="label">Login Status</span> <span class="badge '.$user_status_color.'">'.$user_status_label.'</span></div>';
-        if ($user_static->id) {
-            print '<div style="margin-top:15px; text-align:right;"><a href="'.DOL_URL_ROOT.'/user/card.php?id='.$user_static->id.'" style="font-size:12px; color:#3498db; text-decoration:none;">Manage Login Credentials &rarr;</a></div>';
-        }
-        print '</div>';
-
-    print '</div>'; // End Right Column
-
-print '</div>'; // End Grid
-print '</div>'; // End Container
-
-llxFooter();
 ?>
+<style>
+:root {
+    --accent:       #4f46e5;
+    --accent-light: #e0e7ff;
+    --accent-dark:  #3730a3;
+    --surface:      #f8fafc;
+    --radius:       12px;
+    --shadow:       0 4px 12px rgba(0,0,0,0.06);
+    --font:         "Segoe UI", Roboto, Arial, sans-serif;
+}
+#id-top { display: none !important; }
+.side-nav, .side-nav-vert { top: 0 !important; height: 100vh !important; }
+#id-right { padding-top: 30px !important; background: var(--surface) !important; min-height: 100vh; }
+.fiche { max-width: 100% !important; margin: 0 !important; }
+
+.fb-wrap { max-width: 1200px; margin: 0 auto; padding: 24px 28px; font-family: var(--font); }
+
+.fb-page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.profile-meta { display: flex; align-items: center; }
+.profile-avatar { width: 64px; height: 64px; border-radius: 16px; background: var(--accent); color: #fff; font-size: 28px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; margin-right: 18px; flex-shrink: 0; }
+.profile-name h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; color: #1e293b; }
+.profile-name .meta { font-size: 13px; color: #94a3b8; }
+
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff !important; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none !important; transition: background .2s; }
+.btn-primary:hover { background: var(--accent-dark); text-decoration: none !important; }
+.btn-ghost  { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #475569 !important; padding: 10px 18px; border-radius: 8px; font-weight: 500; font-size: 14px; text-decoration: none !important; border: 1px solid #e2e8f0; margin-right: 8px; transition: background .15s; }
+.btn-ghost:hover { background: #f1f5f9; text-decoration: none !important; }
+
+.meta-strip { display: flex; gap: 20px; flex-wrap: wrap; background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 22px; margin-bottom: 22px; align-items: center; }
+.meta-item { font-size: 13px; color: #64748b; }
+.meta-item strong { color: #1e293b; font-weight: 700; }
+.meta-sep { color: #e2e8f0; font-size: 18px; }
+
+.profile-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+.fb-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
+.fb-card-head { padding: 14px 22px; border-bottom: 1px solid #f1f5f9; }
+.fb-card-head h3 { margin: 0; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #94a3b8; }
+
+.data-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 22px; border-bottom: 1px solid #f8fafc; }
+.data-row:last-child { border-bottom: none; }
+.data-lbl { font-size: 13px; color: #64748b; font-weight: 500; flex-shrink: 0; }
+.data-val { font-size: 14px; color: #1e293b; font-weight: 600; text-align: right; }
+
+.badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.badge-active  { background: #dcfce7; color: #15803d; }
+.badge-pending { background: #fef3c7; color: #92400e; }
+.badge-expired { background: #fee2e2; color: #991b1b; }
+.badge-default { background: #f1f5f9; color: #475569; }
+
+.status-center { text-align: center; padding: 24px 22px; border-bottom: 1px solid #f1f5f9; }
+.plan-name { font-size: 20px; font-weight: 800; color: #1e293b; margin: 14px 0 4px; }
+.plan-sub  { font-size: 12px; color: #94a3b8; }
+
+.fb-card.notes-card { background: #fffbeb; }
+.fb-card.notes-card .fb-card-head { border-bottom-color: #fde68a; }
+.fb-card.notes-card .fb-card-head h3 { color: #92400e; }
+.notes-text { padding: 14px 22px; font-size: 13px; color: #374151; line-height: 1.6; }
+
+.account-link { display: block; text-align: center; padding: 12px; font-size: 13px; color: var(--accent); text-decoration: none !important; font-weight: 600; border-top: 1px solid #f1f5f9; transition: background .15s; }
+.account-link:hover { background: #f8fafc; text-decoration: none !important; }
+</style>
+
+<div class="fb-wrap">
+
+    <!-- Header -->
+    <div class="fb-page-header">
+        <div class="profile-meta">
+            <div class="profile-avatar"><?php echo $initial; ?></div>
+            <div class="profile-name">
+                <h1><?php echo dol_escape_htmltag($name); ?> &nbsp;<span class="badge <?php echo $status_class; ?>"><?php echo $status; ?></span></h1>
+                <span class="meta">Ref: <strong><?php echo dol_escape_htmltag($object->ref); ?></strong> &nbsp;&middot;&nbsp; Joined: <?php echo dol_print_date($db->jdate($object->date_creation), 'day'); ?></span>
+            </div>
+        </div>
+        <div style="flex-shrink:0; margin-top:4px;">
+            <a href="beneficiaries.php" class="btn-ghost">← Back to List</a>
+            <a href="edit_beneficiary.php?id=<?php echo $object->id; ?>" class="btn-primary">✏️ Edit Profile</a>
+        </div>
+    </div>
+
+    <!-- Meta Strip -->
+    <div class="meta-strip">
+        <div class="meta-item">Email: <strong><?php echo $object->email ? dol_escape_htmltag($object->email) : '—'; ?></strong></div>
+        <span class="meta-sep">·</span>
+        <div class="meta-item">Phone: <strong><?php echo $object->phone ? dol_escape_htmltag($object->phone) : '—'; ?></strong></div>
+        <span class="meta-sep">·</span>
+        <div class="meta-item">Family: <strong><?php echo (int)$object->family_size > 0 ? (int)$object->family_size.' members' : '1 member'; ?></strong></div>
+        <span class="meta-sep">·</span>
+        <div class="meta-item">Orders: <strong><?php echo $order_count; ?></strong></div>
+    </div>
+
+    <!-- Profile Grid -->
+    <div class="profile-grid">
+
+        <!-- LEFT -->
+        <div>
+            <div class="fb-card">
+                <div class="fb-card-head"><h3>Personal Information</h3></div>
+                <div class="data-row"><span class="data-lbl">Email Address</span><span class="data-val"><?php echo $object->email ? dol_escape_htmltag($object->email) : '<span style="color:#cbd5e1">Not provided</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">Phone Number</span><span class="data-val"><?php echo $object->phone ? dol_escape_htmltag($object->phone) : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">Gender</span><span class="data-val"><?php echo $object->gender ? dol_escape_htmltag($object->gender) : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">Date of Birth</span><span class="data-val"><?php echo $object->dob ? dol_print_date($object->dob, 'day') : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">NIN / ID Number</span><span class="data-val"><?php echo $object->identification_number ? dol_escape_htmltag($object->identification_number) : '<span style="color:#cbd5e1">Not provided</span>'; ?></span></div>
+            </div>
+
+            <div class="fb-card">
+                <div class="fb-card-head"><h3>Address & Location</h3></div>
+                <div class="data-row"><span class="data-lbl">Street Address</span><span class="data-val"><?php echo $object->address ? dol_escape_htmltag($object->address) : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">City / LGA</span><span class="data-val"><?php echo $object->city ? dol_escape_htmltag($object->city) : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">State</span><span class="data-val"><?php echo $object->state ? dol_escape_htmltag($object->state) : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+            </div>
+
+            <div class="fb-card">
+                <div class="fb-card-head"><h3>Household & Employment</h3></div>
+                <div class="data-row"><span class="data-lbl">Family Size</span><span class="data-val"><?php echo (int)$object->family_size > 0 ? (int)$object->family_size.' Members' : '1 Member'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">Employment Status</span><span class="data-val"><?php echo $object->employment_status ? dol_escape_htmltag($object->employment_status) : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+            </div>
+
+            <?php if (!empty($object->note)) : ?>
+            <div class="fb-card notes-card">
+                <div class="fb-card-head"><h3>Admin Notes</h3></div>
+                <div class="notes-text"><?php echo nl2br(dol_escape_htmltag($object->note)); ?></div>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- RIGHT -->
+        <div>
+            <div class="fb-card">
+                <div class="fb-card-head"><h3>Subscription</h3></div>
+                <div class="status-center">
+                    <span class="badge <?php echo $status_class; ?>" style="font-size:13px; padding:8px 20px;"><?php echo $status; ?></span>
+                    <div class="plan-name"><?php echo $object->subscription_type ? dol_escape_htmltag($object->subscription_type) : 'No Plan'; ?></div>
+                    <div class="plan-sub">Current Subscription Plan</div>
+                </div>
+                <div class="data-row"><span class="data-lbl">Start Date</span><span class="data-val"><?php echo $object->subscription_start_date ? dol_print_date($object->subscription_start_date, 'day') : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">Renewal Due</span><span class="data-val"><?php echo $object->subscription_end_date ? dol_print_date($object->subscription_end_date, 'day') : '<span style="color:#cbd5e1">—</span>'; ?></span></div>
+                <div class="data-row"><span class="data-lbl">Total Orders</span><span class="data-val"><?php echo $order_count; ?></span></div>
+            </div>
+
+            <div class="fb-card">
+                <div class="fb-card-head"><h3>System Account</h3></div>
+                <div class="data-row"><span class="data-lbl">Login Status</span><span class="badge <?php echo $user_status_class; ?>"><?php echo $user_status_label; ?></span></div>
+                <?php if ($user_login) : ?>
+                <div class="data-row"><span class="data-lbl">Username</span><span class="data-val" style="font-family:monospace;"><?php echo dol_escape_htmltag($user_login); ?></span></div>
+                <?php endif; ?>
+                <?php if ($user_link) : ?>
+                <a href="<?php echo $user_link; ?>" class="account-link" target="_blank">Manage Login Credentials →</a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<?php llxFooter(); ?>

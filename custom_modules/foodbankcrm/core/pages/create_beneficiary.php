@@ -76,56 +76,115 @@ print '<style>
 $notice = '';
 
 // --- LOGIC ---
+$created_login    = '';
+$created_password = '';
+$hide_form = false;
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
-        $notice = '<div class="error">Security check failed: invalid CSRF token.</div>';
+        $notice = '<div style="padding:13px 18px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; margin-bottom:20px;">Security check failed: invalid CSRF token.</div>';
     } else {
-        $b = new Beneficiary($db);
-        $b->ref = $_POST['ref']; 
-        $b->firstname = $_POST['firstname'];
-        $b->lastname = $_POST['lastname'];
-        $b->email = $_POST['email'];
-        $b->phone = $_POST['phone'];
-        $b->address = $_POST['address'];
-        $b->household_size = (int)$_POST['household_size'];
-        $b->note = $_POST['note'];
-        
-        // Capture Status Selection
-        $selected_status = GETPOST('subscription_status', 'alpha');
-        $b->subscription_status = $selected_status ? $selected_status : 'Pending';
-        
-        $res = $b->create($user);
-        
-        if ($res > 0) {
-            // Update subscription fields
-            $tier_id = GETPOST('subscription_tier', 'int');
-            if ($tier_id > 0) {
-                $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE rowid = ".(int)$tier_id;
-                $tier_res = $db->query($sql);
-                if ($tier_res) {
-                    $tier = $db->fetch_object($tier_res);
-                    if ($tier) {
+        $db->begin();
+
+        $firstname = GETPOST('firstname', 'alpha');
+        $lastname  = GETPOST('lastname', 'alpha');
+        $email     = GETPOST('email', 'alpha');
+        $phone     = GETPOST('phone', 'alpha');
+
+        // --- Step 1: Create a Dolibarr user account ---
+        require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+        $newuser = new User($db);
+
+        // Generate login from firstname+lastname, sanitise
+        $base_login = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstname.$lastname));
+        if (empty($base_login)) $base_login = 'subscriber';
+        // Make it unique
+        $test_login = $base_login;
+        $suffix = 1;
+        while (true) {
+            $chk = new User($db);
+            if ($chk->fetch('', $test_login) <= 0) break;
+            $test_login = $base_login.$suffix++;
+        }
+        $created_login = $test_login;
+
+        // Generate a 12-char password meeting Dolibarr's complexity requirements
+        // Must have lowercase, uppercase, digit, and special char
+        $lowers   = 'abcdefghjkmnpqrstuvwxyz';
+        $uppers   = 'ABCDEFGHJKMNPQRSTUVWXYZ';
+        $digits   = '23456789';
+        $specials = '!@#$%';
+        $all      = $lowers.$uppers.$digits.$specials;
+        // Guarantee at least one of each category
+        $created_password  = $lowers[random_int(0, strlen($lowers)-1)];
+        $created_password .= $uppers[random_int(0, strlen($uppers)-1)];
+        $created_password .= $digits[random_int(0, strlen($digits)-1)];
+        $created_password .= $specials[random_int(0, strlen($specials)-1)];
+        // Fill remaining 8 chars from full pool
+        for ($i = 0; $i < 8; $i++) $created_password .= $all[random_int(0, strlen($all)-1)];
+        // Shuffle so the guaranteed chars aren't always first
+        $created_password = str_shuffle($created_password);
+
+        $newuser->login     = $created_login;
+        $newuser->email     = $email;
+        $newuser->firstname = $firstname;
+        $newuser->lastname  = $lastname;
+        $newuser->pass      = $created_password;
+        $newuser->statut    = 1; // active
+
+        $uid = $newuser->create($user);
+
+        if ($uid <= 0) {
+            $db->rollback();
+            $notice = '<div style="padding:13px 18px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; margin-bottom:20px;">Could not create user account: '.dol_escape_htmltag($newuser->error).'</div>';
+        } else {
+            // Auto-grant beneficiary permissions
+            foreach (array(100001, 100021, 100022) as $right_id) {
+                $db->query("INSERT IGNORE INTO ".MAIN_DB_PREFIX."user_rights (entity, fk_user, fk_id) VALUES (1, ".(int)$uid.", ".(int)$right_id.")");
+            }
+
+            // --- Step 2: Create beneficiary profile ---
+            $b = new Beneficiary($db);
+            $b->ref            = GETPOST('ref', 'alpha');
+            $b->firstname      = $firstname;
+            $b->lastname       = $lastname;
+            $b->email          = $email;
+            $b->phone          = $phone;
+            $b->address        = GETPOST('address', 'restricthtml');
+            $b->household_size = (int)GETPOST('household_size', 'int');
+            $b->note           = GETPOST('note', 'restricthtml');
+            $b->subscription_status = GETPOST('subscription_status', 'alpha') ?: 'Pending';
+
+            $bid = $b->create($user);
+
+            if ($bid > 0) {
+                // Link user to beneficiary record
+                $db->query("UPDATE ".MAIN_DB_PREFIX."foodbank_beneficiaries SET fk_user = ".(int)$uid." WHERE rowid = ".(int)$bid);
+
+                // Apply subscription tier
+                $tier_id = GETPOST('subscription_tier', 'int');
+                if ($tier_id > 0) {
+                    $tier_res = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE rowid = ".(int)$tier_id);
+                    if ($tier_res && $tier = $db->fetch_object($tier_res)) {
                         $start_date = date('Y-m-d');
-                        $end_date = date('Y-m-d', strtotime('+'.$tier->duration_months.' months'));
-                        
-                        $sql_upd = "UPDATE ".MAIN_DB_PREFIX."foodbank_beneficiaries SET 
+                        $end_date   = date('Y-m-d', strtotime('+'.$tier->duration_months.' months'));
+                        $db->query("UPDATE ".MAIN_DB_PREFIX."foodbank_beneficiaries SET
                                     subscription_type = '".$db->escape($tier->tier_type)."',
-                                    subscription_status = '".$db->escape($b->subscription_status)."', 
+                                    subscription_status = '".$db->escape($b->subscription_status)."',
                                     subscription_start_date = '".$start_date."',
                                     subscription_end_date = '".$end_date."',
                                     subscription_fee = ".(float)$tier->price."
-                                    WHERE rowid = ".(int)$res;
-                        $db->query($sql_upd);
+                                    WHERE rowid = ".(int)$bid);
                     }
                 }
+
+                $db->commit();
+                $hide_form = true;
+                $notice = ''; // credentials shown separately below
+            } else {
+                $db->rollback();
+                $notice = '<div style="padding:13px 18px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; margin-bottom:20px;">Error creating subscriber profile: '.dol_escape_htmltag($b->error).'</div>';
             }
-            
-            // Redirect with message
-            setEventMessages("Subscriber created successfully", null, 'mesgs');
-            header("Location: beneficiaries.php");
-            exit;
-        } else {
-            $notice = '<div class="error">Error creating subscriber: '.dol_escape_htmltag($b->error).'</div>';
         }
     }
 }
@@ -153,7 +212,26 @@ print '</div>';
 
 print $notice;
 
-if (!isset($hide_form)) {
+// --- Show credentials after successful creation ---
+if ($hide_form && $created_login) {
+    print '<div style="background:#f0fdf4; border:2px solid #16a34a; border-radius:12px; padding:32px; text-align:center; margin-bottom:24px;">';
+    print '<div style="font-size:48px; margin-bottom:12px;">✅</div>';
+    print '<h2 style="color:#15803d; margin:0 0 8px;">Subscriber Created Successfully!</h2>';
+    print '<p style="color:#166534; margin:0 0 24px;">The subscriber\'s Dolibarr login account has been created. Share the credentials below with them so they can log in.</p>';
+    print '<div style="background:#fff; border:1px solid #bbf7d0; border-radius:8px; padding:20px; display:inline-block; min-width:300px; text-align:left; margin-bottom:24px;">';
+    print '<p style="margin:0 0 12px; font-size:13px; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:.5px;">Login Credentials</p>';
+    print '<div style="margin-bottom:10px;"><span style="font-size:12px; color:#94a3b8;">Username</span><br>';
+    print '<strong style="font-size:20px; color:#1e293b; font-family:monospace;">'.dol_escape_htmltag($created_login).'</strong></div>';
+    print '<div><span style="font-size:12px; color:#94a3b8;">Temporary Password</span><br>';
+    print '<strong style="font-size:20px; color:#1e293b; font-family:monospace;">'.dol_escape_htmltag($created_password).'</strong></div>';
+    print '</div>';
+    print '<p style="color:#dc2626; font-size:13px; font-weight:600; margin:0 0 20px;">Important: Copy these credentials now. The password cannot be retrieved again.</p>';
+    print '<a href="beneficiaries.php" class="button" style="background:#16a34a; color:white; padding:12px 30px; border-radius:8px; text-decoration:none; font-weight:600;">View All Subscribers</a>';
+    print ' <a href="create_beneficiary.php" class="button" style="background:#eee; color:#333; padding:12px 30px; border-radius:8px; text-decoration:none; font-weight:600; margin-left:10px;">Add Another</a>';
+    print '</div>';
+}
+
+if (!$hide_form) {
     print '<div class="fb-card">';
     print '<form method="POST" action="'.basename(__FILE__).'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';

@@ -116,12 +116,24 @@ if (!$hide_form) {
     print '<tbody id="itemBody">';
     print '<tr>
             <td><input type="text" name="product_name[]" class="item-input" placeholder="New Item Name"></td>
-            <td><input type="number" name="quantity[]" class="item-input" value="1"></td>
-            <td><select name="unit[]" class="item-input"><option>kg</option><option>units</option><option>liters</option></select></td>
-            <td><input type="number" name="unit_price[]" class="item-input" value="0"></td>
+            <td><input type="number" name="quantity[]" class="item-input" value="1" min="0" step="0.01"></td>
+            <td><input type="text" name="unit[]" class="item-input" list="unit-list" placeholder="kg, units..." value="kg"></td>
+            <td><input type="number" name="unit_price[]" class="item-input" value="0" min="0" step="0.01"></td>
             <td></td>
            </tr>';
     print '</tbody></table>';
+    print '<datalist id="unit-list">
+            <option value="kg">
+            <option value="g">
+            <option value="units">
+            <option value="packs">
+            <option value="bags">
+            <option value="boxes">
+            <option value="cartons">
+            <option value="liters">
+            <option value="crates">
+            <option value="tonnes">
+           </datalist>';
     print '<button type="button" class="button small" style="margin-top:10px; background:#667eea; color:white;" onclick="addRow()">+ Add Another</button>';
 
     print '<div style="margin-top: 30px; text-align: center;">';
@@ -140,7 +152,9 @@ function addRow() {
     var row = table.rows[0].cloneNode(true);
     var inputs = row.getElementsByTagName("input");
     for(var i=0; i<inputs.length; i++) inputs[i].value = "";
-    inputs[1].value = "1"; inputs[3].value = "0";
+    var selects = row.getElementsByTagName("select");
+    for(var i=0; i<selects.length; i++) selects[i].selectedIndex = 0;
+    inputs[1].value = "1"; inputs[2].value = "0";
     table.appendChild(row);
 }
 </script>';
