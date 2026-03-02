@@ -77,7 +77,7 @@ if ($action == 'verify') {
     if (isOtpLocked($db, $email, $ip_address)) {
         $error = "Too many failed attempts. Please wait 15 minutes or request a new code.";
     } else {
-        $code_input = GETPOST('code', 'alpha');
+        $code_input = GETPOST('code', 'san_alphanum'); // OTP: digits/letters only, strip all HTML
 
         // Expiry check done in MySQL (avoids PHP/MySQL timezone mismatch) — 10 min window
         $sql = "SELECT * FROM " . MAIN_DB_PREFIX . "foodbank_email_verification

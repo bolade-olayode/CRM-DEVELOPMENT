@@ -18,6 +18,41 @@ class ActionsFoodbankcrm
     }
 
     /**
+     * Send HTTP security headers for every page that triggers this hook.
+     *
+     * These headers are a protective layer that tells the user's browser how to
+     * behave with our pages — blocking clickjacking, MIME sniffing, etc.
+     *
+     * The .htaccess file covers our custom module pages (core/pages/).
+     * This method covers Dolibarr's core pages (home, admin, etc.) where the
+     * hook manager is called, so nothing slips through.
+     *
+     * Uses headers_sent() check so it is safe to call even if output has started.
+     */
+    private function sendSecurityHeaders()
+    {
+        if (headers_sent()) {
+            return; // Too late to add headers — output already flushed
+        }
+
+        // Prevent browsers from guessing file types (e.g., treating a text file as JS)
+        header('X-Content-Type-Options: nosniff');
+
+        // Prevent the site from being embedded in iframes on other domains (anti-clickjacking)
+        header('X-Frame-Options: SAMEORIGIN');
+
+        // Only share our domain name (not full URL) when linking to external sites
+        header('Referrer-Policy: strict-origin-when-cross-origin');
+
+        // Disable browser features we never use
+        header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+
+        // Control which external resources the browser is allowed to load
+        // Paystack domains are whitelisted so payments continue to work
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co; connect-src 'self' https://api.paystack.co; frame-src https://checkout.paystack.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:");
+    }
+
+    /**
      * Intercept Dolibarr's main home page (htdocs/index.php) and redirect
      * logged-in Foodbank CRM users to their role-appropriate dashboard.
      *
@@ -29,6 +64,10 @@ class ActionsFoodbankcrm
     public function doActions($parameters, &$object, &$action, $hookmanager)
     {
         global $user, $db;
+
+        // Always send security headers — this fires for any Dolibarr page that
+        // invokes the hook manager, regardless of which page it is.
+        $this->sendSecurityHeaders();
 
         // Only act on Dolibarr's own index.php – not on our custom pages.
         $self = isset($_SERVER['PHP_SELF']) ? $_SERVER['PHP_SELF'] : '';

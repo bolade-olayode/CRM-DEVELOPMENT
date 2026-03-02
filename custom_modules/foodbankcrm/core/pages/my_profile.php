@@ -25,6 +25,15 @@ $msg    = '';
 $msg_type = '';
 
 if ($action == 'update') {
+    // CSRF check: verify the hidden token in the form matches the one in the session.
+    // This ensures the request genuinely came from our form, not from a malicious website.
+    if (!isset($_POST['token']) || $_POST['token'] !== $_SESSION['newtoken']) {
+        $msg      = 'Security check failed. Please refresh the page and try again.';
+        $msg_type = 'error';
+        $mode     = 'edit';
+        // Skip the update — fall through to page render
+    } else {
+
     $firstname      = GETPOST('firstname', 'alpha');
     $lastname       = GETPOST('lastname', 'alpha');
     $email          = GETPOST('email', 'alpha');
@@ -52,6 +61,7 @@ if ($action == 'update') {
         $msg_type = 'error';
         $mode = 'edit';
     }
+    } // end else (CSRF passed)
 }
 
 // Cart count for nav badge
@@ -210,6 +220,9 @@ print '<div class="card-body">';
 if ($mode == 'edit') {
     print '<form method="POST" action="my_profile.php">';
     print '<input type="hidden" name="action" value="update">';
+    // Hidden CSRF token — generated fresh each page load, checked on submission.
+    // An attacker's fake form won't have this token, so their request is rejected.
+    print '<input type="hidden" name="token" value="'.newToken().'">';
     print '<div class="form-grid">';
     print '<div class="form-group"><label class="form-label">First Name</label><input type="text" name="firstname" class="form-control" value="'.dol_escape_htmltag($subscriber->firstname).'" required></div>';
     print '<div class="form-group"><label class="form-label">Last Name</label><input type="text" name="lastname" class="form-control" value="'.dol_escape_htmltag($subscriber->lastname).'" required></div>';

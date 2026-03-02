@@ -15,7 +15,7 @@ $res_ben    = $db->query($sql_ben);
 $subscriber = $db->fetch_object($res_ben);
 $subscriber_id = $subscriber->rowid;
 
-$selected_tier = GETPOST('selected_tier', 'alpha');
+$selected_tier = GETPOST('selected_tier', 'int');   // Numeric row ID — int filter is exact
 $amount        = GETPOST('amount', 'int');
 
 if (empty($selected_tier) || empty($amount)) {

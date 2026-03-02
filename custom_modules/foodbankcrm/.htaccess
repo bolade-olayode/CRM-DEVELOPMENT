@@ -1,0 +1,127 @@
+# =============================================================================
+# FoodbankCRM — Security Configuration
+# =============================================================================
+# This file is read by Apache before serving any page inside this module.
+# It adds protective HTTP headers and tightens PHP settings automatically,
+# without touching individual page files.
+#
+# To verify headers are being sent, visit:
+#   https://securityheaders.com  (paste your site URL)
+#   https://observatory.mozilla.org
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# SECTION 1: HTTP Security Headers
+# Sent with every HTTP response from this module.
+# -----------------------------------------------------------------------------
+<IfModule mod_headers.c>
+
+    # X-Content-Type-Options
+    # Problem it solves: A browser might guess a file's type and run it as code
+    #   (e.g., treat a .txt upload as JavaScript). This tells it: never guess — trust
+    #   only what the server says the file is.
+    Header always set X-Content-Type-Options "nosniff"
+
+    # X-Frame-Options
+    # Problem it solves: An attacker could embed your site invisibly inside their own page
+    #   and trick your users into clicking buttons they can't see (clickjacking).
+    #   This prevents any site from embedding your pages in an iframe,
+    #   EXCEPT your own domain (SAMEORIGIN).
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Referrer-Policy
+    # Problem it solves: When a user clicks a link and goes to another site,
+    #   the browser tells that site "they came from YOUR_URL".
+    #   This could leak sensitive URL parameters (like order IDs, tokens).
+    #   "strict-origin-when-cross-origin" only shares your domain name, not the full URL,
+    #   when going to a different site.
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions-Policy
+    # Problem it solves: Locks down browser features we never use.
+    #   A hacker who finds an XSS hole can't suddenly access your user's camera,
+    #   microphone, or GPS because these are explicitly blocked.
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+
+    # Content-Security-Policy (CSP)
+    # Problem it solves: If an attacker manages to inject malicious JavaScript into a page
+    #   (XSS), CSP is a second line of defence that tells the browser to only run scripts
+    #   from approved sources — not from the attacker's server.
+    #
+    # Our whitelist:
+    #   'self'                       = our own domain
+    #   https://js.paystack.co       = Paystack's payment button JavaScript
+    #   https://api.paystack.co      = Paystack API (called by our PHP backend, not browser — included for completeness)
+    #   https://checkout.paystack.com = Paystack's secure iframe popup for card entry
+    #
+    # NOTE: 'unsafe-inline' is required for now because our pages use inline <style> and
+    #   <script> blocks. In a future hardening pass, moving those to external files would
+    #   let us remove 'unsafe-inline' and gain stronger XSS protection.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co; connect-src 'self' https://api.paystack.co; frame-src https://checkout.paystack.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
+
+    # HTTPS-only header — UNCOMMENT THIS ONLY after you have SSL working on your live server.
+    # Problem it solves: Once a user has visited your site over HTTPS, their browser will
+    #   NEVER connect over plain HTTP again for the next year, protecting them even if
+    #   they type the URL without "https://".
+    # WARNING: Only enable on a domain that will ALWAYS have HTTPS. If you ever remove SSL,
+    #   users will be locked out for up to 1 year.
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+</IfModule>
+
+
+# -----------------------------------------------------------------------------
+# SECTION 2: PHP Security Settings
+# Note: These work if PHP runs as an Apache module (mod_php).
+# If your server uses PHP-FPM (common on cPanel, Nginx, or modern stacks),
+# these are silently ignored — you must set them in php.ini or the FPM pool config.
+# Ask your host if you're unsure which you're running.
+# -----------------------------------------------------------------------------
+<IfModule mod_php.c>
+    # Never show PHP errors to users — error messages reveal internal code structure
+    # and make it much easier for an attacker to find and exploit bugs.
+    php_flag  display_errors      Off
+    php_flag  display_startup_errors Off
+
+    # Still LOG errors on the server (so YOU can see them), just don't show users.
+    php_flag  log_errors          On
+
+    # Session cookie security:
+    # HttpOnly = JavaScript cannot read the session cookie.
+    #            This means if an attacker injects JavaScript (XSS), they still cannot
+    #            steal your users' session tokens.
+    php_value session.cookie_httponly 1
+
+    # SameSite=Lax = The session cookie is not sent on cross-site requests.
+    #                This is a second layer of CSRF protection — even without a CSRF token,
+    #                a malicious site cannot trigger authenticated actions on your site
+    #                using a user's cookie.
+    php_value session.cookie_samesite "Lax"
+</IfModule>
+
+# Same settings for PHP 7.x and PHP 8.x module names
+<IfModule mod_php7.c>
+    php_flag  display_errors      Off
+    php_flag  display_startup_errors Off
+    php_flag  log_errors          On
+    php_value session.cookie_httponly 1
+    php_value session.cookie_samesite "Lax"
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_flag  display_errors      Off
+    php_flag  display_startup_errors Off
+    php_flag  log_errors          On
+    php_value session.cookie_httponly 1
+    php_value session.cookie_samesite "Lax"
+</IfModule>
+
+
+# -----------------------------------------------------------------------------
+# SECTION 3: Protect sensitive files from direct browser access
+# These files should only be loaded by PHP, never accessed directly.
+# -----------------------------------------------------------------------------
+<FilesMatch "\.(sql|log|md|gitignore|env)$">
+    Require all denied
+</FilesMatch>
