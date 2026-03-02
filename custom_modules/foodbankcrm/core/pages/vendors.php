@@ -11,6 +11,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $langs->load("admin");
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Vendor Management');
 ?>
 <style>

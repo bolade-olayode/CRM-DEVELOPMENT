@@ -64,6 +64,7 @@ $tiers = [];
 $res = $db->query("SELECT tier_type, tier_name, price FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE is_active=1 ORDER BY price ASC");
 if ($res) while ($t = $db->fetch_object($res)) $tiers[] = $t;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Edit Subscriber');
 ?>
 <style>

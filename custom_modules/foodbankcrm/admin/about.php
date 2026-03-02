@@ -96,9 +96,53 @@ print load_fiche_titre($langs->trans($page_name), $linkback, 'title_setup');
 $head = foodbankcrmAdminPrepareHead();
 print dol_get_fiche_head($head, 'about', $langs->trans($page_name), 0, 'foodbankcrm@foodbankcrm');
 
-dol_include_once('/foodbankcrm/core/modules/modFoodbankCRM.class.php');
-$tmpmodule = new modFoodbankCRM($db);
-print $tmpmodule->getDescLong();
+dol_include_once('/foodbankcrm/core/modules/modFoodbankcrm.class.php');
+$tmpmodule = new modFoodbankcrm($db);
+
+print '<div style="max-width:720px; font-family: \'Segoe UI\', sans-serif; line-height:1.7;">';
+
+print '<div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">';
+print '<div style="font-size:52px;">🥦</div>';
+print '<div>';
+print '<h2 style="margin:0 0 4px; font-size:22px; color:#0f766e;">FoodbankCRM</h2>';
+print '<span style="background:#d1fae5; color:#065f46; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700;">v'.$tmpmodule->version.'</span>';
+print '</div></div>';
+
+print '<p style="color:#334155; font-size:15px; margin-bottom:20px;">A custom Dolibarr module designed to manage foodbank operations — covering subscriber registration, vendor management, package catalogues, cart & order processing, subscription billing, and admin oversight — all within a unified CRM platform.</p>';
+
+print '<table class="noborder" style="width:100%;">';
+print '<tr class="liste_titre"><th colspan="2">Module Information</th></tr>';
+$rows = [
+	['Author',       htmlspecialchars($tmpmodule->editor_name)],
+	['Version',      htmlspecialchars($tmpmodule->version)],
+	['Module ID',    (int)$tmpmodule->numero],
+	['PHP Required', implode('.', $tmpmodule->phpmin).' or higher'],
+	['Dolibarr',     '15.0 or higher'],
+	['License',      'GNU GPL v3'],
+];
+foreach ($rows as [$label, $value]) {
+	print '<tr class="oddeven"><td style="width:200px; font-weight:600;">'.$label.'</td><td>'.$value.'</td></tr>';
+}
+print '</table>';
+
+print '<h3 style="margin:28px 0 12px; color:#0f766e;">Key Features</h3>';
+$features = [
+	'🧑‍🤝‍🧑 Beneficiary / Subscriber registration and profile management',
+	'🏪 Vendor registration with admin approval workflow',
+	'📦 Product & package catalogue with cart system',
+	'📋 Order lifecycle: Pending → Prepared → Bundled → In Transit → Delivered',
+	'💳 Paystack payment integration for subscriptions and orders',
+	'🔑 Role-based access control (Admin / Vendor / Beneficiary)',
+	'📊 Admin dashboard with live statistics and order management',
+	'🔔 Dolibarr hook & trigger integration',
+];
+print '<ul style="color:#334155; padding-left:20px; margin:0;">';
+foreach ($features as $f) {
+	print '<li style="margin-bottom:8px;">'.$f.'</li>';
+}
+print '</ul>';
+
+print '</div>';
 
 // Page end
 print dol_get_fiche_end();

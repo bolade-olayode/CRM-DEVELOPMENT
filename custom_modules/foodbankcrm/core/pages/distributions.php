@@ -32,6 +32,7 @@ $filter = GETPOST('filter', 'alpha');
 $allowed_filters = ['Prepared', 'In Transit', 'Delivered'];
 if (!in_array($filter, $allowed_filters)) $filter = '';
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Logistics Center');
 
 // --- CSS ---

@@ -8,6 +8,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
     accessforbidden('Administrator rights required.');
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Create Subscription Tier');
 
 $notice = '';

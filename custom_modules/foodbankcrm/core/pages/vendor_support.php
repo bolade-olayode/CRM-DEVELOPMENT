@@ -99,6 +99,7 @@ if ($is_admin && $_SERVER['REQUEST_METHOD'] == 'POST' && $_POST['action'] == 'up
     }
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', $is_admin ? 'Support Desk' : 'Vendor Support');
 ?>
 <style>

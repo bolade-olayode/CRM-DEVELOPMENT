@@ -274,3 +274,18 @@ CREATE TABLE IF NOT EXISTS llx_foodbank_email_verification (
   code VARCHAR(10),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 18. Set Dolibarr's native landing-page redirect to the FoodbankCRM role router.
+--     MAIN_LANDING_PAGE is read by main.inc.php immediately after every successful
+--     login, before any module-enable check, so it works even when the module is
+--     toggled off or after the SQL reset that wipes llx_const FOODBANK rows.
+INSERT INTO llx_const (name, value, type, visible, note, entity)
+VALUES (
+  'MAIN_LANDING_PAGE',
+  '/custom/foodbankcrm/core/pages/redirect_dashboard.php',
+  'chaine', 0,
+  'FoodbankCRM: redirect each login to the role-based dashboard router',
+  1
+)
+ON DUPLICATE KEY UPDATE
+  value = '/custom/foodbankcrm/core/pages/redirect_dashboard.php';

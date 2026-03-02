@@ -34,6 +34,7 @@ if ($action == 'approve' && GETPOST('id', 'int')) {
     }
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Subscriber Management');
 ?>
 <style>

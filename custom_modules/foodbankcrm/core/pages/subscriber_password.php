@@ -20,6 +20,7 @@ if (!$user_is_beneficiary) {
     accessforbidden('You do not have access.');
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Change Password');
 
 // 2. MODERN UI & HIDE CHROME CSS

@@ -56,6 +56,7 @@ $admin_name = trim($user->firstname.' '.$user->lastname) ?: $user->login;
 $hour = (int)date('H');
 $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Admin Dashboard');
 ?>
 <style>

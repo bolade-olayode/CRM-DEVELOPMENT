@@ -20,6 +20,7 @@ $res = $db->query($sql);
 $vendor = $db->fetch_object($res);
 $vendor_id = $vendor->rowid;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'My Business Profile');
 
 // --- MODERN CSS ---

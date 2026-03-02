@@ -11,6 +11,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
     accessforbidden('Administrator rights required.');
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Reports');
 
 print '<div style="text-align: center; padding: 80px 20px;">';

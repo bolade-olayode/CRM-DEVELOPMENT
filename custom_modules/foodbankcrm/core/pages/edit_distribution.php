@@ -64,6 +64,7 @@ $langs->load("admin");
 $lines     = DistributionLine::getAllByDistribution($db, $id);
 $donations = Distribution::getAvailableDonations($db);
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Edit Shipment');
 ?>
 <style>

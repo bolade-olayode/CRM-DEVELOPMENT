@@ -95,11 +95,13 @@ $item = $formSetup->newItem('FOODBANK_PAYSTACK_PUBLIC_KEY');
 $item->nameText = 'Paystack Public Key';
 $item->helpText = 'Your Paystack public API key (starts with pk_test_ or pk_live_). Found in your Paystack Dashboard under Settings > API Keys.';
 $item->cssClass = 'minwidth500';
+$item->fieldInputType = 'password';
 
 $item = $formSetup->newItem('FOODBANK_PAYSTACK_SECRET_KEY');
 $item->nameText = 'Paystack Secret Key';
 $item->helpText = 'Your Paystack secret API key (starts with sk_test_ or sk_live_). Keep this confidential. Found in your Paystack Dashboard under Settings > API Keys.';
 $item->cssClass = 'minwidth500';
+$item->fieldInputType = 'password';
 
 
 $setupnotempty += count($formSetup->items);
@@ -149,7 +151,36 @@ if ($action == 'edit') {
 	print $formSetup->generateOutput(true);
 	print '<br>';
 } elseif (!empty($formSetup->items)) {
-	print $formSetup->generateOutput();
+	// Custom masked view — never show raw key values on screen
+	$pub_key = getDolGlobalString('FOODBANK_PAYSTACK_PUBLIC_KEY');
+	$sec_key = getDolGlobalString('FOODBANK_PAYSTACK_SECRET_KEY');
+
+	// Mask helper: show prefix + bullets, flag if unconfigured
+	$maskKey = function($key) {
+		if (empty(trim($key))) {
+			return '<span style="color:#dc3545;font-weight:600;">&#10006; Not configured</span>';
+		}
+		$prefix = htmlspecialchars(substr($key, 0, 12));
+		return '<code style="background:#f1f5f9;padding:3px 8px;border-radius:4px;font-size:13px;letter-spacing:1px;">'
+			. $prefix . str_repeat('•', 20)
+			. '</code> <span style="color:#64748b;font-size:12px;">(hidden for security)</span>';
+	};
+
+	print '<table class="noborder centpercent">';
+	print '<tr class="liste_titre">';
+	print '<th style="width:250px;">Setting</th>';
+	print '<th>Value</th>';
+	print '</tr>';
+	print '<tr class="oddeven">';
+	print '<td><strong>Paystack Public Key</strong><br><small style="color:#94a3b8;">pk_test_... or pk_live_...</small></td>';
+	print '<td>'.$maskKey($pub_key).'</td>';
+	print '</tr>';
+	print '<tr class="oddeven">';
+	print '<td><strong>Paystack Secret Key</strong><br><small style="color:#94a3b8;">sk_test_... or sk_live_... — keep confidential</small></td>';
+	print '<td>'.$maskKey($sec_key).'</td>';
+	print '</tr>';
+	print '</table>';
+
 	print '<div class="tabsAction">';
 	print '<a class="butAction" href="'.basename(__FILE__).'?action=edit&token='.newToken().'">'.$langs->trans("Modify").'</a>';
 	print '</div>';

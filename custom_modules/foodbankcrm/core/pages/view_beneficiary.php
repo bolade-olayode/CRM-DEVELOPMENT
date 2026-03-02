@@ -47,6 +47,7 @@ $initial      = strtoupper(mb_substr($object->firstname ?: $object->lastname ?: 
 $status       = !empty($object->subscription_status) ? $object->subscription_status : 'Pending';
 $status_class = $status == 'Active' ? 'badge-active' : ($status == 'Expired' ? 'badge-expired' : 'badge-pending');
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Subscriber Profile');
 ?>
 <style>

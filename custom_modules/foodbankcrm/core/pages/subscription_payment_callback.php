@@ -41,6 +41,7 @@ curl_close($curl);
 
 // --- ERROR UI ---
 function printErrorPage($msg) {
+    $_SESSION["mainmenu"] = "foodbankcrm";
     llxHeader('', 'Payment Error');
     print '<style>
         #id-top, .side-nav, .side-nav-vert, #id-left, .login_block, .tmenudiv, .nav-bar, header { display: none !important; }

@@ -21,14 +21,17 @@ class modFoodbankcrm extends DolibarrModules
 
         $this->const        = array();
         $this->dirs         = array('/foodbankcrm');
-        $this->config_page_url = array('setup.php@foodbankcrm');
+        // config_page_url intentionally removed — having it set causes Dolibarr
+        // to redirect all post-login requests to admin/index.php?mesg=setupnotcomplete
+        // until the setup page is visited. The settings are accessible via the
+        // Settings sidebar menu item instead.
         $this->langfiles    = array('foodbankcrm@foodbankcrm');
         $this->phpmin       = array(7,4);
 
         $this->depends      = array();
         $this->requiredby   = array();
         $this->conflictwith = array();
-        $this->module_parts = array('triggers' => 1);
+        $this->module_parts = array('triggers' => 1, 'hooks' => 1);
 
         $this->const = array();
         $r = 0;

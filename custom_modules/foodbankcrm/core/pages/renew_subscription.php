@@ -35,11 +35,12 @@ if (!$res_ben || $db->num_rows($res_ben) == 0) {
 $subscriber = $db->fetch_object($res_ben);
 $subscriber_id = (int)$subscriber->rowid;
 
-// Get available tiers
-$sql_tiers = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE status = 'Active' AND tier_type != 'Guest' ORDER BY price ASC";
+// Get available tiers — show ALL Active tiers, no type filtering
+$sql_tiers = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE status = 'Active' ORDER BY price ASC";
 $res_tiers = $db->query($sql_tiers);
 
-llxHeader('', 'Renew Subscription');
+$_SESSION["mainmenu"] = "foodbankcrm";
+llxHeader('', 'Subscription Plans');
 
 // --- MODERN CSS ---
 print '<style>
@@ -180,7 +181,7 @@ if ($res_tiers) {
     while ($tier = $db->fetch_object($res_tiers)) {
         $is_current = ($tier->tier_type == $subscriber->subscription_type);
         
-        print '<div class="tier-card" onclick="selectTier(\''.$tier->tier_type.'\', '.$tier->price.')" id="tier-'.$tier->tier_type.'">';
+        print '<div class="tier-card" onclick="selectTier('.$tier->rowid.', '.$tier->price.')" id="tier-'.$tier->rowid.'">';
         
         print '<div class="tier-name">'.dol_escape_htmltag($tier->tier_name).'</div>';
         print '<div class="tier-price">₦'.number_format($tier->price, 0).'</div>';
@@ -228,20 +229,20 @@ print '</div>'; // End Container
 <script>
 let selectedTier = null;
 
-function selectTier(tierType, price) {
+function selectTier(tierId, price) {
     // 1. Deselect all
     document.querySelectorAll('.tier-card').forEach(card => {
         card.classList.remove('selected');
     });
-    
+
     // 2. Select clicked
-    document.getElementById('tier-' + tierType).classList.add('selected');
-    
+    document.getElementById('tier-' + tierId).classList.add('selected');
+
     // 3. Update Inputs
-    document.getElementById('selected_tier').value = tierType;
+    document.getElementById('selected_tier').value = tierId;
     document.getElementById('amount').value = price;
-    
-    selectedTier = tierType;
+
+    selectedTier = tierId;
 }
 
 document.getElementById('subscription-form').addEventListener('submit', function(e) {

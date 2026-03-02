@@ -17,6 +17,7 @@ $res = $db->query($sql);
 $vendor = $db->fetch_object($res);
 $vendor_id = $vendor->rowid;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'My Product Catalog');
 
 print '<div><a href="dashboard_vendor.php">← Back to Dashboard</a></div><br>';

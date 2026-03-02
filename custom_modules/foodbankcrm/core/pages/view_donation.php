@@ -52,6 +52,7 @@ $sm        = $status_map[$donation->status] ?? ['class' => 'badge-default', 'ico
 $back_link = $user_is_admin ? 'donations.php' : 'my_donations.php';
 $available = $donation->quantity - $donation->quantity_allocated;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Inventory Log Details');
 ?>
 <style>

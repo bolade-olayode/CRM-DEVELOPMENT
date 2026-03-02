@@ -79,6 +79,7 @@ $initial      = strtoupper(mb_substr($obj->name ?: '?', 0, 1));
 $status       = $obj->status ?: 'Pending';
 $status_class = $status == 'Active' ? 'badge-active' : ($status == 'Inactive' ? 'badge-expired' : 'badge-pending');
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Vendor Profile');
 ?>
 <style>

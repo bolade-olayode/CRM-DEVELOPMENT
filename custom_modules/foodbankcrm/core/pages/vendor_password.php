@@ -17,6 +17,7 @@ if (!$user_is_vendor) {
     accessforbidden('You do not have access.');
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Change Password');
 
 // 2. PORTAL MODE CSS

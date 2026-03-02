@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Edit Warehouse');
 ?>
 <style>

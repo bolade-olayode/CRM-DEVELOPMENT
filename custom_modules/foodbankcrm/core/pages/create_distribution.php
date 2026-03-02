@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['create_distribution'])
 }
 
 $langs->load("admin");
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'New Shipment');
 ?>
 <style>

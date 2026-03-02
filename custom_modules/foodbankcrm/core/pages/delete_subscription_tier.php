@@ -9,6 +9,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
     accessforbidden('Administrator rights required.');
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Delete Subscription Tier');
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {

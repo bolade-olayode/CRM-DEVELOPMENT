@@ -1,261 +1,210 @@
 <?php
 /**
- * My Orders - View Order History (Modern UI)
+ * My Orders - Subscriber Order History
  */
-
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/permissions.class.php';
 
 global $user, $db, $conf;
-
-// Reset redirect flag if present
-if (isset($_SESSION['foodbank_checked'])) {
-    $_SESSION['foodbank_checked'] = false;
-}
-
 $langs->load("admin");
 
-// Security check - beneficiary only
-$user_is_beneficiary = FoodbankPermissions::isBeneficiary($user, $db);
-
-if (!$user_is_beneficiary) {
+if (!FoodbankPermissions::isBeneficiary($user, $db)) {
     accessforbidden('You do not have access to orders.');
 }
 
-// Get beneficiary ID
 $sql_ben = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE fk_user = ".(int)$user->id;
-$res_ben = $db->query($sql_ben);
-$beneficiary = $db->fetch_object($res_ben);
-$beneficiary_id = $beneficiary->rowid;
+$beneficiary_id = (int)$db->fetch_object($db->query($sql_ben))->rowid;
 
-// Get filter
 $status_filter = GETPOST('status', 'alpha');
 
+// Summary counts
+$cnt = $db->fetch_object($db->query(
+    "SELECT COUNT(*) as total,
+            SUM(CASE WHEN status='Delivered' THEN 1 ELSE 0 END) as delivered,
+            SUM(CASE WHEN status IN ('Prepared','In Transit','Bundled') THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN status='Pending' THEN 1 ELSE 0 END) as pending
+     FROM ".MAIN_DB_PREFIX."foodbank_distributions WHERE fk_beneficiary=".(int)$beneficiary_id
+));
+
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'My Orders');
+?>
+<style>
+    #id-top,.side-nav,.side-nav-vert,#id-left,.login_block,.tmenudiv,.nav-bar,header{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
+    html,body{background:#f0f4f8!important;margin:0!important;padding:0!important;width:100%!important;overflow-x:hidden!important;font-family:'Segoe UI',system-ui,sans-serif}
+    #id-container,#id-right,.id-right{margin:0!important;padding:0!important;width:100vw!important;max-width:100vw!important;display:block!important}
+    .fiche{width:100%!important;max-width:100%!important;margin:0!important}
+    *{box-sizing:border-box}
+    body{padding-top:64px!important}
 
-// --- MODERN UI CSS ---
-print '<style>
-    /* 1. HIDE DOLIBARR CHROME */
-    #id-top, .side-nav, .side-nav-vert, #id-left, .login_block, .tmenudiv, .nav-bar, header {
-        display: none !important;
-    }
-    
-    /* 2. LAYOUT RESET */
-    html, body { background-color: #f8f9fa !important; margin: 0; width: 100%; overflow-x: hidden; }
-    #id-right, .id-right { margin: 0 !important; width: 100vw !important; max-width: 100vw !important; padding: 0 !important; }
-    .fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+    /* NAV */
+    .fb-nav{position:fixed;top:0;left:0;right:0;height:64px;background:linear-gradient(90deg,#0f766e,#0d9488);display:flex;align-items:center;justify-content:space-between;padding:0 28px;z-index:9999;box-shadow:0 2px 16px rgba(0,0,0,.18)}
+    .fb-nav-brand{font-size:17px;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:9px}
+    .fb-nav-links{display:flex;gap:2px}
+    .fb-nav-link{color:rgba(255,255,255,.82);text-decoration:none;font-size:13px;font-weight:500;padding:7px 14px;border-radius:20px;transition:background .15s}
+    .fb-nav-link:hover,.fb-nav-link.active{background:rgba(255,255,255,.18);color:#fff}
+    .fb-nav-right{display:flex;align-items:center;gap:14px}
+    .fb-logout{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);padding:6px 16px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s}
 
-    /* 3. PAGE CONTAINER */
-    .ben-container { width: 95%; max-width: 1200px; margin: 0 auto; padding: 40px 20px; font-family: "Segoe UI", sans-serif; }
+    /* PAGE */
+    .page-wrap{max-width:1000px;margin:0 auto;padding:36px 24px 60px}
 
-    /* 4. CARD GRID SYSTEM */
-    .orders-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 25px;
-    }
+    /* HERO */
+    .page-hero{background:linear-gradient(135deg,#134e4a,#0d9488);border-radius:16px;padding:32px;margin-bottom:30px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+    .page-hero h1{margin:0 0 6px;font-size:26px;font-weight:800}
+    .page-hero p{margin:0;opacity:.75;font-size:14px}
+    .hero-stats{display:flex;gap:24px;flex-wrap:wrap}
+    .hs{text-align:center}
+    .hs-val{font-size:28px;font-weight:800;line-height:1}
+    .hs-lbl{font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
 
-    /* 5. ORDER CARD STYLING */
-    .order-card {
-        background: white;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        border: 1px solid #f0f0f0;
-        transition: transform 0.2s, box-shadow 0.2s;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
-    .order-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-    }
-    
-    /* 6. BADGES */
-    .status-badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: bold;
-        text-transform: uppercase;
-        color: white;
-    }
+    /* FILTER TABS */
+    .filter-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+    .ftab{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:30px;text-decoration:none;font-size:13px;font-weight:600;border:2px solid #e2e8f0;color:#64748b;background:#fff;transition:all .15s;cursor:pointer}
+    .ftab:hover{border-color:#0d9488;color:#0d9488}
+    .ftab.active{background:#0d9488;color:#fff;border-color:#0d9488}
+    .ftab-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 
-    /* 7. FORM ELEMENTS */
-    .filter-select {
-        padding: 12px 20px;
-        border: 1px solid #ddd;
-        border-radius: 30px;
-        font-size: 14px;
-        background: white;
-        cursor: pointer;
-        outline: none;
-        min-width: 200px;
-    }
-    
-    /* 8. BUTTONS */
-    .btn-view {
-        background: #f8f9fa;
-        color: #333;
-        text-decoration: none;
-        padding: 12px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: 600;
-        transition: background 0.2s;
-        display: block;
-        margin-top: 20px;
-    }
-    .btn-view:hover { background: #e9ecef; color: #000; }
-    
-    .btn-back {
-        text-decoration: none;
-        color: #666;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .btn-back:hover { color: #333; }
+    /* ORDER CARDS */
+    .orders-list{display:flex;flex-direction:column;gap:16px}
+    .order-card{background:#fff;border-radius:14px;box-shadow:0 4px 16px rgba(0,0,0,.06);border:1px solid #e8edf2;overflow:hidden;transition:box-shadow .2s,transform .2s}
+    .order-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.1);transform:translateY(-2px)}
+    .order-card-top{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid #f1f5f9}
+    .order-ref{font-weight:800;font-size:16px;color:#1e293b}
+    .order-date{font-size:12px;color:#94a3b8;margin-top:3px}
+    .order-body{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;padding:16px 22px}
+    @media(max-width:600px){.order-body{grid-template-columns:1fr 1fr}}
+    .order-field{}
+    .order-field-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px}
+    .order-field-val{font-size:15px;font-weight:700;color:#1e293b}
+    .order-card-foot{padding:14px 22px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:12px;background:#fafbfc}
+    .btn-view{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;transition:all .2s}
+    .btn-view.default{background:#f1f5f9;color:#334155}
+    .btn-view.default:hover{background:#e2e8f0}
+    .btn-view.pay{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 3px 10px rgba(16,185,129,.3)}
+    .btn-view.pay:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(16,185,129,.4)}
 
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .orders-grid { grid-template-columns: 1fr; }
-        .header-flex { flex-direction: column; align-items: flex-start; gap: 15px; }
-    }
-</style>';
+    /* BADGES */
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+    .b-pending{background:#f1f5f9;color:#64748b}
+    .b-prepared{background:#fef9c3;color:#854d0e}
+    .b-bundled{background:#dbeafe;color:#1e40af}
+    .b-transit{background:#ede9fe;color:#6d28d9}
+    .b-delivered{background:#d1fae5;color:#065f46}
 
-print '<div class="ben-container">';
+    /* EMPTY */
+    .empty{text-align:center;padding:70px 20px;background:#fff;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+    .empty-icon{font-size:72px;display:block;margin-bottom:20px;opacity:.5}
+    .empty h2{margin:0 0 10px;color:#334155;font-size:22px}
+    .empty p{color:#94a3b8;margin-bottom:28px;font-size:15px}
+    .btn-shop{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;padding:12px 32px;border-radius:30px;text-decoration:none;font-weight:700;display:inline-block}
+</style>
 
-// --- HEADER ---
-print '<div class="header-flex" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">';
+<?php
+// NAV
+print '<nav class="fb-nav">';
+print '<a href="dashboard_beneficiary.php" class="fb-nav-brand">🥦 FoodbankCRM</a>';
+print '<div class="fb-nav-links">';
+print '<a href="product_catalog.php" class="fb-nav-link">Packages</a>';
+print '<a href="view_cart.php"       class="fb-nav-link">My Cart</a>';
+print '<a href="my_orders.php"       class="fb-nav-link active">Orders</a>';
+print '<a href="my_profile.php"      class="fb-nav-link">Profile</a>';
+print '</div>';
+print '<div class="fb-nav-right">';
+print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-logout">🚪 Logout</a>';
+print '</div>';
+print '</nav>';
+
+print '<div class="page-wrap">';
+
+// HERO
+print '<div class="page-hero">';
 print '<div>';
-print '<h1 style="margin: 0 0 5px 0; color: #2c3e50;">📦 My Orders</h1>';
-print '<p style="margin: 0; color: #666;">Track your past and current requests</p>';
+print '<h1>📦 My Orders</h1>';
+print '<p>Track all your food package requests in one place</p>';
 print '</div>';
-print '<a href="dashboard_beneficiary.php" class="btn-back"><span>←</span> Back to Dashboard</a>';
-print '</div>';
-
-// --- FILTER BAR ---
-print '<div style="margin-bottom: 30px; display: flex; justify-content: flex-end;">';
-print '<form method="GET" action="'.basename(__FILE__).'">';
-print '<select name="status" class="filter-select" onchange="this.form.submit()">';
-print '<option value="">Show All Orders</option>';
-print '<option value="Pending" '.($status_filter == 'Pending' ? 'selected' : '').'>⚪ Pending</option>';
-print '<option value="Prepared" '.($status_filter == 'Prepared' ? 'selected' : '').'>🟡 Prepared</option>';
-print '<option value="Bundled" '.($status_filter == 'Bundled' ? 'selected' : '').'>🔵 Bundled</option>';
-print '<option value="In Transit" '.($status_filter == 'In Transit' ? 'selected' : '').'>🟣 In Transit</option>';
-print '<option value="Delivered" '.($status_filter == 'Delivered' ? 'selected' : '').'>🟢 Delivered</option>';
-print '</select>';
-print '</form>';
-print '</div>';
-
-// --- FETCH ORDERS ---
-$sql = "SELECT d.rowid, d.ref, d.date_distribution, d.status, d.payment_method, 
-        d.total_amount, d.note, d.payment_status
-        FROM ".MAIN_DB_PREFIX."foodbank_distributions d
-        WHERE d.fk_beneficiary = ".(int)$beneficiary_id;
-
-if ($status_filter) {
-    $sql .= " AND d.status = '".$db->escape($status_filter)."'";
+print '<div class="hero-stats">';
+$hs = [['📋',$cnt->total,'Total'],['🚚',$cnt->active,'Active'],['✅',$cnt->delivered,'Delivered'],['⏳',$cnt->pending,'Pending']];
+foreach ($hs as [$ic,$v,$l]) {
+    print '<div class="hs"><div class="hs-val">'.$ic.' '.(int)$v.'</div><div class="hs-lbl">'.$l.'</div></div>';
 }
+print '</div></div>';
 
-$sql .= " ORDER BY d.date_distribution DESC";
+// FILTER TABS
+$tabs = [
+    [''          , '🗂', 'All',        '#64748b'],
+    ['Pending'   , '⏳', 'Pending',    '#64748b'],
+    ['Prepared'  , '📦', 'Prepared',   '#d97706'],
+    ['Bundled'   , '📫', 'Bundled',    '#2563eb'],
+    ['In Transit', '🚚', 'In Transit', '#7c3aed'],
+    ['Delivered' , '✅', 'Delivered',  '#059669'],
+];
+print '<div class="filter-tabs">';
+foreach ($tabs as [$val, $ic, $lbl, $col]) {
+    $active = ($status_filter === $val) ? ' active' : '';
+    $qs = $val ? '?status='.urlencode($val) : '?';
+    print '<a href="my_orders.php'.$qs.'" class="ftab'.$active.'">';
+    print '<span class="ftab-dot" style="background:'.$col.'"></span>';
+    print $ic.' '.$lbl;
+    print '</a>';
+}
+print '</div>';
 
+// FETCH ORDERS
+$sql = "SELECT rowid, ref, datec, status, payment_method, total_amount, payment_status, note
+        FROM ".MAIN_DB_PREFIX."foodbank_distributions
+        WHERE fk_beneficiary = ".(int)$beneficiary_id;
+if ($status_filter) $sql .= " AND status = '".$db->escape($status_filter)."'";
+$sql .= " ORDER BY datec DESC";
 $resql = $db->query($sql);
 
-if ($resql) {
-    $num = $db->num_rows($resql);
-    
-    if ($num > 0) {
-        print '<div class="orders-grid">';
-        
-        while ($obj = $db->fetch_object($resql)) {
-            // Status Logic
-            $status_colors = array(
-                'Pending' => '#6c757d',    // Grey
-                'Prepared' => '#ffc107',   // Yellow
-                'Bundled' => '#17a2b8',    // Teal
-                'In Transit' => '#6f42c1', // Purple
-                'Delivered' => '#28a745',  // Green
-            );
-            $bg_color = $status_colors[$obj->status] ?? '#6c757d';
-            
-            // Payment Logic
-            $pay_icon = ($obj->payment_method == 'pay_now') ? '💳' : '💵';
-            $pay_text = ($obj->payment_method == 'pay_now') ? 'Paystack' : 'Cash on Delivery';
-            
-            // Payment Status Warning
-            $payment_warning = '';
-            if ($obj->payment_status != 'Paid' && $obj->payment_status != 'Success' && $obj->payment_method == 'pay_now') {
-                 $payment_warning = '<div style="margin-top:5px; font-size:12px; color:#dc3545; font-weight:bold;">⚠️ Payment Pending</div>';
-            }
-            
-            // --- CARD START ---
-            print '<div class="order-card">';
-            
-            // Top: Ref & Status
-            print '<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">';
-            print '<div>';
-            print '<div style="font-weight: bold; font-size: 18px; color: #333;">'.dol_escape_htmltag($obj->ref).'</div>';
-            print '<div style="color: #999; font-size: 13px; margin-top: 4px;">'.dol_print_date($db->jdate($obj->date_distribution), 'day').'</div>';
-            print '</div>';
-            print '<span class="status-badge" style="background-color: '.$bg_color.';">'.dol_escape_htmltag($obj->status).'</span>';
-            print '</div>';
-            
-            // Middle: Details
-            print '<div style="flex-grow: 1;">';
-            
-            // Total Amount
-            print '<div style="margin-bottom: 15px;">';
-            print '<div style="font-size: 12px; text-transform: uppercase; color: #999; font-weight: bold; letter-spacing: 0.5px;">Total Amount</div>';
-            print '<div style="font-size: 24px; font-weight: bold; color: #2c3e50;">₦'.number_format($obj->total_amount, 2).'</div>';
-            print '</div>';
-            
-            // Payment Method
-            print '<div style="display: flex; align-items: center; gap: 8px; color: #555; font-size: 14px;">';
-            print '<span>'.$pay_icon.'</span>';
-            print '<span>'.$pay_text.'</span>';
-            print '</div>';
-            print $payment_warning;
+$badge_map = ['Pending'=>'b-pending','Prepared'=>'b-prepared','Bundled'=>'b-bundled','In Transit'=>'b-transit','Delivered'=>'b-delivered'];
+$dot_map   = ['Pending'=>'#94a3b8','Prepared'=>'#d97706','Bundled'=>'#2563eb','In Transit'=>'#7c3aed','Delivered'=>'#059669'];
 
-            // Note Preview (Truncated)
-            if ($obj->note) {
-                $note_short = substr($obj->note, 0, 50) . (strlen($obj->note) > 50 ? '...' : '');
-                print '<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px; color: #666;">';
-                print '📝 '.dol_escape_htmltag($note_short);
-                print '</div>';
-            }
-            print '</div>'; // End Middle
-            
-            // Bottom: Action Button
-            // If payment pending, show Pay Now, else View Details
-            if ($obj->payment_status != 'Paid' && $obj->payment_status != 'Success' && $obj->payment_method == 'pay_now') {
-                print '<a href="process_order_payment.php?order_id='.$obj->rowid.'" class="btn-view" style="background:#28a745; color:white;">💳 Pay Now</a>';
-            } else {
-                print '<a href="view_order.php?id='.$obj->rowid.'" class="btn-view">View Details</a>';
-            }
-            
-            print '</div>'; // End Card
+if ($resql && $db->num_rows($resql) > 0) {
+    print '<div class="orders-list">';
+    while ($o = $db->fetch_object($resql)) {
+        $bc   = $badge_map[$o->status] ?? 'b-pending';
+        $dot  = $dot_map[$o->status]   ?? '#94a3b8';
+        $pm   = $o->payment_method == 'pay_now' ? '💳 Paystack' : '💵 Cash on Delivery';
+        $need_pay = ($o->payment_method == 'pay_now' && !in_array($o->payment_status, ['Paid','Success']));
+
+        print '<div class="order-card">';
+        // Top
+        print '<div class="order-card-top">';
+        print '<div>';
+        print '<div class="order-ref">'.dol_escape_htmltag($o->ref).'</div>';
+        print '<div class="order-date">'.dol_print_date($db->jdate($o->datec), 'day').'</div>';
+        print '</div>';
+        print '<span class="badge '.$bc.'"><span style="width:7px;height:7px;border-radius:50%;background:'.$dot.';display:inline-block"></span>'.dol_escape_htmltag($o->status).'</span>';
+        print '</div>';
+        // Body
+        print '<div class="order-body">';
+        print '<div class="order-field"><div class="order-field-lbl">Amount</div><div class="order-field-val" style="color:#0d9488">₦'.number_format($o->total_amount, 2).'</div></div>';
+        print '<div class="order-field"><div class="order-field-lbl">Payment</div><div class="order-field-val" style="font-size:13px">'.$pm.'</div></div>';
+        if ($o->note) {
+            print '<div class="order-field"><div class="order-field-lbl">Note</div><div class="order-field-val" style="font-size:13px;color:#64748b">'.dol_escape_htmltag(dol_trunc($o->note, 40)).'</div></div>';
         }
-        print '</div>'; // End Grid
-        
-    } else {
-        // EMPTY STATE
-        print '<div style="text-align: center; padding: 80px 20px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">';
-        print '<div style="font-size: 80px; margin-bottom: 20px; opacity: 0.5;">📦</div>';
-        print '<h2 style="margin: 0 0 10px 0; color: #333;">No Orders Found</h2>';
-        print '<p style="color: #666; font-size: 16px; margin-bottom: 30px;">You haven\'t placed any orders yet.</p>';
-        print '<a href="product_catalog.php" class="btn-view" style="display: inline-block; background: #667eea; color: white; padding: 12px 30px;">Start Shopping</a>';
+        print '</div>';
+        // Footer
+        print '<div class="order-card-foot">';
+        if ($need_pay) {
+            print '<a href="process_order_payment.php?order_id='.$o->rowid.'" class="btn-view pay">💳 Pay Now</a>';
+        }
+        print '<a href="view_order.php?id='.$o->rowid.'" class="btn-view default">View Details →</a>';
+        print '</div>';
         print '</div>';
     }
+    print '</div>';
 } else {
-    print '<div class="ben-error">Error loading orders: '.$db->lasterror().'</div>';
+    print '<div class="empty">';
+    print '<span class="empty-icon">📦</span>';
+    print '<h2>No Orders Found</h2>';
+    print '<p>'.($status_filter ? 'No orders with status "'.$status_filter.'".' : "You haven't placed any orders yet.").'</p>';
+    print '<a href="product_catalog.php" class="btn-shop">Browse Packages →</a>';
+    print '</div>';
 }
 
-print '</div>'; // End Container
-
+print '</div>'; // page-wrap
 llxFooter();
 ?>

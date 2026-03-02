@@ -9,6 +9,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $langs->load("admin");
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader();
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {

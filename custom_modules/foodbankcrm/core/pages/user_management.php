@@ -126,6 +126,7 @@ $res_bl = $db->query($sql);
 $ben_links = [];
 while ($obj = $db->fetch_object($res_bl)) $ben_links[] = $obj;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'User Role Management');
 ?>
 <style>

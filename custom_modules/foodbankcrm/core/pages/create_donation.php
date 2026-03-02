@@ -73,6 +73,7 @@ $warehouses = [];
 $res = $db->query("SELECT rowid, label FROM ".MAIN_DB_PREFIX."foodbank_warehouses ORDER BY label");
 while ($o = $db->fetch_object($res)) $warehouses[] = $o;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Add Inventory');
 ?>
 <style>

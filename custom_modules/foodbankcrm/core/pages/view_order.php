@@ -40,6 +40,7 @@ $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distributions
         AND fk_beneficiary = ".(int)$subscriber_id;
 $res = $db->query($sql);
 if (!$res || $db->num_rows($res) == 0) {
+    $_SESSION["mainmenu"] = "foodbankcrm";
     llxHeader('', 'Order Not Found');
     echo '<style>#id-left { display:none!important; } #id-right { margin-left:0!important; width:100%!important; } </style>';
     echo '<div style="padding:40px; text-align:center; font-family:Segoe UI,sans-serif;">';
@@ -72,6 +73,7 @@ if ($current_idx === false) $current_idx = 0;
 $color = $status_colors[$order->status] ?? '#94a3b8';
 $icon  = $status_icons[$order->status]  ?? '?';
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Order Details');
 ?>
 <style>

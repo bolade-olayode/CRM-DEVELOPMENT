@@ -40,6 +40,7 @@ if (!$order) {
     exit;
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Order Successful');
 
 echo '<style>

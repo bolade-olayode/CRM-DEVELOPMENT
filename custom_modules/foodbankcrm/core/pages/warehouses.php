@@ -8,6 +8,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $langs->load("admin");
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Warehouses');
 ?>
 <style>
@@ -154,6 +155,7 @@ $max_cap = $total_capacity > 0 ? $total_capacity : 1;
                         </div>
                     </td>
                     <td style="text-align:right;">
+                        <a href="view_warehouse.php?id=<?php echo $o->rowid; ?>" class="act-btn">👁️ View</a>
                         <a href="edit_warehouse.php?id=<?php echo $o->rowid; ?>" class="act-btn">✏️ Edit</a>
                         <a href="delete_warehouse.php?id=<?php echo $o->rowid; ?>" class="act-btn danger"
                            onclick="return confirm('Delete this warehouse?')">🗑️ Delete</a>

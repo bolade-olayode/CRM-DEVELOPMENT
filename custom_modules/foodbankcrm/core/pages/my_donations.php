@@ -32,6 +32,7 @@ if ($user_is_vendor && !$user_is_admin) {
     }
 }
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Supply History');
 
 // --- MODERN CSS & RESET ---

@@ -28,6 +28,7 @@ $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_vendors WHERE fk_user = ".(int)
 $res = $db->query($sql);
 
 if (!$res || $db->num_rows($res) == 0) {
+    $_SESSION["mainmenu"] = "foodbankcrm";
     llxHeader('', 'Vendor Dashboard');
     print '<div class="error">Vendor profile not found. Please contact administrator.</div>';
     llxFooter();
@@ -38,6 +39,7 @@ $vendor        = $db->fetch_object($res);
 $vendor_id     = $vendor->rowid;
 $vendor_status = $vendor->status;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Vendor Dashboard');
 ?>
 <style>

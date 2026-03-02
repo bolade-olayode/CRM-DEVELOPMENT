@@ -40,6 +40,7 @@ if ($search_query)  $sql .= " AND (d.ref LIKE '%".$db->escape($search_query)."%'
 $sql .= " GROUP BY d.rowid ORDER BY d.datec DESC";
 $res = $db->query($sql);
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Distributions');
 ?>
 <style>

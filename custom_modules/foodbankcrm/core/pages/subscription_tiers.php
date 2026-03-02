@@ -52,6 +52,7 @@ $res = $db->query($sql);
 $tiers = [];
 if ($res) while ($o = $db->fetch_object($res)) $tiers[] = $o;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Subscription Tiers');
 ?>
 <style>

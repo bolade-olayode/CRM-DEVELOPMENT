@@ -9,6 +9,7 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $langs->load("admin");
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Shipment Details');
 
 if (!isset($_GET['id'])) { header("Location: distributions.php"); exit; }

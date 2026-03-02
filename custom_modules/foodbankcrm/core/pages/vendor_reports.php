@@ -28,6 +28,7 @@ $vendor_id = $vendor->rowid;
 $year = GETPOST('year', 'int') ? GETPOST('year', 'int') : date('Y');
 $month = GETPOST('month', 'int') ? GETPOST('month', 'int') : 0; // 0 = All Year
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Supply Performance');
 
 // 3. CSS (Matches dashboard_vendor.php exactly)

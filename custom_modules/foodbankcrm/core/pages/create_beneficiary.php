@@ -121,6 +121,7 @@ $subscription_tiers = [];
 $res = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE is_active=1 ORDER BY price ASC");
 if ($res) while ($obj = $db->fetch_object($res)) $subscription_tiers[] = $obj;
 
+$_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Create Subscriber');
 ?>
 <style>
