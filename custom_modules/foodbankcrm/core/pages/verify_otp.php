@@ -63,11 +63,14 @@ if ($action == 'resend') {
         // Reset failed verification attempts on resend
         $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_rate_limit WHERE ip_address = '".$db->escape($email)."' AND action_type = 'otp_verify'");
 
-        $subject = "New Verification Code";
-        $msg = "Your new code is: $otp";
-        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'no-reply@foodbank.com';
-        $mail = new CMailFile($subject, $email, $from, $msg);
-        $mail->sendfile();
+        // Send styled HTML OTP email
+        require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+        // Fetch firstname for personalisation
+        $sql_fn = "SELECT firstname FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE email = '".$db->escape($email)."' LIMIT 1";
+        $res_fn = $db->query($sql_fn);
+        $fn_obj = ($res_fn && $db->num_rows($res_fn) > 0) ? $db->fetch_object($res_fn) : null;
+        FoodbankMailer::sendOtpEmail($email, $fn_obj ? $fn_obj->firstname : '', $otp);
+
         $success_msg = "A new code has been sent to your email.";
     }
 }
@@ -109,6 +112,15 @@ if ($action == 'verify') {
                     $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_rate_limit WHERE ip_address = '".$db->escape($email)."' AND action_type IN ('otp_verify','otp_resend')");
                     $login = $u->login;
                     $db->commit();
+
+                    // Send welcome email now that the email address is confirmed
+                    require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+                    $sql_ben_w = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE email = '".$db->escape($email)."' LIMIT 1";
+                    $res_ben_w = $db->query($sql_ben_w);
+                    if ($res_ben_w && $db->num_rows($res_ben_w) > 0) {
+                        $ben_w = $db->fetch_object($res_ben_w);
+                        FoodbankMailer::sendWelcomeEmail($ben_w->firstname, $ben_w->lastname, $email, $login);
+                    }
 
                     // Account is now active. Redirect to Dolibarr's login page.
                     // backtopage routes the user to their correct dashboard after login.

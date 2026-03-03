@@ -103,6 +103,14 @@ $item->helpText = 'Your Paystack secret API key (starts with sk_test_ or sk_live
 $item->cssClass = 'minwidth500';
 $item->fieldInputType = 'password';
 
+// --- Email & Notification Configuration ---
+$formSetup->newItem('EmailSettings')->setAsTitle();
+
+$item = $formSetup->newItem('FOODBANK_ADMIN_NOTIFICATION_EMAIL');
+$item->nameText = 'Admin Notification Email';
+$item->helpText = 'Email address that receives alerts when a new subscriber or vendor registers. Leave blank to use the system FROM address configured in Admin → Setup → Email.';
+$item->cssClass = 'minwidth500';
+
 
 $setupnotempty += count($formSetup->items);
 
@@ -178,6 +186,18 @@ if ($action == 'edit') {
 	print '<tr class="oddeven">';
 	print '<td><strong>Paystack Secret Key</strong><br><small style="color:#94a3b8;">sk_test_... or sk_live_... — keep confidential</small></td>';
 	print '<td>'.$maskKey($sec_key).'</td>';
+	print '</tr>';
+	// Admin notification email (not sensitive — shown as plain text)
+	$admin_notif_email = getDolGlobalString('FOODBANK_ADMIN_NOTIFICATION_EMAIL');
+	print '<tr class="oddeven">';
+	print '<td><strong>Admin Notification Email</strong><br><small style="color:#94a3b8;">Receives new registration alerts</small></td>';
+	print '<td>';
+	if (empty(trim($admin_notif_email))) {
+		print '<span style="color:#64748b;font-size:13px;">Not set &mdash; using system FROM address</span>';
+	} else {
+		print '<code style="background:#f1f5f9;padding:3px 8px;border-radius:4px;font-size:13px;">'.htmlspecialchars($admin_notif_email).'</code>';
+	}
+	print '</td>';
 	print '</tr>';
 	print '</table>';
 

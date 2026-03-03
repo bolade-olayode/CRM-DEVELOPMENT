@@ -110,11 +110,12 @@ if ($action == 'register' && empty($error)) {
 
                         $db->commit();
 
-                        $subject = "Verify your Foodbank Account";
-                        $msg = "Hello $fname,\n\nYour verification code is: $otp\n\nThank you.";
-                        $from = !empty($conf->global->MAIN_MAIL_EMAIL_FROM) ? $conf->global->MAIN_MAIL_EMAIL_FROM : 'no-reply@foodbank.com';
-                        $mail = new CMailFile($subject, $email, $from, $msg);
-                        $mail->sendfile();
+                        // Send styled HTML OTP email to the new subscriber
+                        require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+                        FoodbankMailer::sendOtpEmail($email, $fname, $otp);
+
+                        // Notify the admin that a new subscriber just registered
+                        FoodbankMailer::sendAdminNewRegistration('subscriber', $fname.' '.$lname, $email);
 
                         header("Location: verify_otp.php?email=".urlencode($email));
                         exit;

@@ -103,8 +103,8 @@ if (strpos($reference, 'ORD-') === 0 && $metadata && isset($metadata->order_id))
 
     $order_id = (int)$metadata->order_id;
 
-    // Fetch order
-    $sql = "SELECT rowid, total_amount, payment_status
+    // Fetch order (ref added so we can include it in the payment receipt email)
+    $sql = "SELECT rowid, ref, total_amount, payment_status
             FROM ".MAIN_DB_PREFIX."foodbank_distributions
             WHERE rowid = ".$order_id;
     $res = $db->query($sql);
@@ -152,6 +152,18 @@ if (strpos($reference, 'ORD-') === 0 && $metadata && isset($metadata->order_id))
                     WHERE fk_order = ".$order_id);
         $db->commit();
         dol_syslog("FoodbankCRM Webhook: Order $order_id marked Paid via webhook (ref=$reference)", LOG_INFO);
+
+        // Send payment receipt email to the subscriber (non-blocking)
+        require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+        $sql_sub_wh = "SELECT b.* FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries b
+                       INNER JOIN ".MAIN_DB_PREFIX."foodbank_distributions d ON d.fk_beneficiary = b.rowid
+                       WHERE d.rowid = ".$order_id;
+        $res_sub_wh = $db->query($sql_sub_wh);
+        $sub_wh     = ($res_sub_wh && $db->num_rows($res_sub_wh) > 0) ? $db->fetch_object($res_sub_wh) : null;
+        if ($sub_wh) {
+            FoodbankMailer::sendPaymentReceipt($sub_wh, $order->ref, $order->total_amount, $reference);
+        }
+
         http_response_code(200);
         echo json_encode(['status' => 'success', 'type' => 'order', 'order_id' => $order_id]);
     } else {
@@ -250,6 +262,16 @@ if (strpos($reference, 'ORD-') === 0 && $metadata && isset($metadata->order_id))
 
         $db->commit();
         dol_syslog("FoodbankCRM Webhook: Subscription activated for subscriber $subscriber_id tier=$tier_type until $end_date (ref=$reference)", LOG_INFO);
+
+        // Send subscription activated email (non-blocking)
+        require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+        $sql_sub_wh2 = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE rowid = ".$subscriber_id;
+        $res_sub_wh2 = $db->query($sql_sub_wh2);
+        $sub_wh2     = ($res_sub_wh2 && $db->num_rows($res_sub_wh2) > 0) ? $db->fetch_object($res_sub_wh2) : null;
+        if ($sub_wh2) {
+            FoodbankMailer::sendSubscriptionActivated($sub_wh2, $tier->tier_name, $end_date);
+        }
+
         http_response_code(200);
         echo json_encode(['status' => 'success', 'type' => 'subscription', 'end_date' => $end_date]);
 

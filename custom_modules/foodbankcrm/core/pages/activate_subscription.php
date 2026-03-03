@@ -138,6 +138,16 @@ try {
     }
 
     $db->commit();
+
+    // Send subscription activated email (non-blocking)
+    require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+    $sql_sub_e = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE rowid = ".$subscriber_id;
+    $res_sub_e = $db->query($sql_sub_e);
+    $sub_e     = $db->fetch_object($res_sub_e);
+    if ($sub_e) {
+        FoodbankMailer::sendSubscriptionActivated($sub_e, $tier->tier_name, $end_date);
+    }
+
     echo json_encode(['status' => 'success', 'end_date' => $end_date]);
 
 } catch (Exception $e) {

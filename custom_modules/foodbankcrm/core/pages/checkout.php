@@ -156,6 +156,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 unset($_SESSION['cart']);
 
                 $db->commit();
+
+                // Send order confirmation email (non-blocking — never interrupts user flow)
+                require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+                FoodbankMailer::sendOrderConfirmation(
+                    $subscriber,
+                    $ref,
+                    $grand_total,
+                    $cart_items,
+                    ($payment_method === 'pay_on_delivery')
+                );
+
                 ob_end_clean();
 
                 if ($payment_method == 'pay_now') {
