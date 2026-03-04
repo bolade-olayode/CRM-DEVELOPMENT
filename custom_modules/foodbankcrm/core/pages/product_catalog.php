@@ -147,9 +147,9 @@ if ($sub_status != 'Active') {
     print '<div class="gate">';
     print '<span class="gate-icon">🔒</span>';
     if ($sub_status == 'Pending') {
-        print '<h2>Subscription Required</h2>';
-        print '<p>Your subscription is <strong>Pending Payment</strong>. Complete payment to browse and claim packages.</p>';
-        print '<a href="dashboard_beneficiary.php" class="btn-gate">Go to Dashboard</a>';
+        print '<h2>Payment Required</h2>';
+        print '<p>Your account is active but you need to <strong>complete a subscription payment</strong> before you can browse and order food packages.</p>';
+        print '<a href="renew_subscription.php" class="btn-gate">Choose a Plan &amp; Pay &rarr;</a>';
     } elseif ($sub_status == 'Expired') {
         print '<h2>Subscription Expired</h2>';
         print '<p>Your subscription has <strong>expired</strong>. Renew your plan to regain access.</p>';

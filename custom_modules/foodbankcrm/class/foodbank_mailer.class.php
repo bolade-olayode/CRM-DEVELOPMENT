@@ -238,22 +238,25 @@ class FoodbankMailer
         $name = htmlspecialchars($firstname . ' ' . $lastname);
         $user = htmlspecialchars($username);
 
+        $renew_url = DOL_URL_ROOT . '/custom/foodbankcrm/core/pages/renew_subscription.php';
+
         $content = self::h('Welcome to FoodbankCRM, ' . htmlspecialchars($firstname) . '! &#127814;')
-            . self::p('Your email has been verified and your account is now fully active. Here\'s a summary:')
+            . self::p('Your email has been verified and your account has been created. Here\'s a summary:')
             . self::infoTable([
                 'Full Name' => $name,
                 'Username'  => $user,
                 'Email'     => htmlspecialchars($to_email),
-                'Status'    => '&#10003; Active',
+                'Status'    => '&#9203; Pending &mdash; Payment Required',
             ])
-            . self::p('To start placing food orders, log in and select a subscription plan. Your plan gives you access to all available food packages for the subscription period.')
+            . self::alert('&#128161; <strong>One more step!</strong> Your account is ready but you need to complete a subscription payment before you can browse and order food packages.', 'warning')
+            . self::btn($renew_url, 'Complete Payment &rarr;')
             . self::p('If you have any questions, do not hesitate to reach out.');
 
         return self::send(
             $to_email,
             $firstname . ' ' . $lastname,
-            'Welcome to FoodbankCRM — Your Account is Active!',
-            self::wrap('Account Activated', 'Your FoodbankCRM account is now active. Welcome!', $content)
+            'Welcome to FoodbankCRM — Complete Your Payment to Get Started',
+            self::wrap('Account Created', 'Your account is ready. Complete payment to start ordering.', $content)
         );
     }
 

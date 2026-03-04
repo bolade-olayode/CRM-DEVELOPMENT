@@ -136,6 +136,16 @@ llxHeader('', 'My Dashboard');
     .fb-renew-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(13,148,136,.4)}
     .empty-orders{text-align:center;padding:40px 20px;color:#94a3b8}
     .empty-orders span{font-size:48px;display:block;margin-bottom:12px}
+
+    /* ── PAYMENT BANNER ──────────────────────────── */
+    .fb-pay-banner{max-width:1200px;margin:0 auto 28px;padding:0 28px}
+    .fb-pay-inner{background:linear-gradient(135deg,#fffbeb,#fef3c7);border:2px solid #f59e0b;border-radius:16px;padding:24px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+    .fb-pay-icon{font-size:40px;flex-shrink:0}
+    .fb-pay-text{flex:1;min-width:200px}
+    .fb-pay-title{font-size:18px;font-weight:800;color:#92400e;margin:0 0 6px}
+    .fb-pay-desc{font-size:14px;color:#78350f;margin:0;line-height:1.5}
+    .fb-pay-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 4px 14px rgba(245,158,11,.4);transition:all .2s;flex-shrink:0}
+    .fb-pay-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,.5)}
 </style>
 
 <?php
@@ -202,6 +212,20 @@ foreach ($stat_items as [$icon, $val, $lbl]) {
     print '</div>';
 }
 print '</div>';
+
+// ── PAYMENT BANNER (Pending users only) ──────────────────────────────────────
+if ($sub->subscription_status === 'Pending') {
+    print '<div class="fb-pay-banner">';
+    print '<div class="fb-pay-inner">';
+    print '<div class="fb-pay-icon">⚠️</div>';
+    print '<div class="fb-pay-text">';
+    print '<div class="fb-pay-title">Payment Required to Start Ordering</div>';
+    print '<div class="fb-pay-desc">Your account has been verified but you need to <strong>choose a subscription plan and complete payment</strong> before you can browse food packages or place orders.</div>';
+    print '</div>';
+    print '<a href="renew_subscription.php" class="fb-pay-btn">💳 Choose a Plan &amp; Pay &rarr;</a>';
+    print '</div>';
+    print '</div>';
+}
 
 // ── BODY ─────────────────────────────────────────────────────────────────────
 print '<div class="fb-body">';

@@ -430,6 +430,16 @@ llxHeader('', 'Admin Dashboard');
                         <div class="db-tool-ttl">Helpdesk</div>
                         <div class="db-tool-dsc"><?php echo $open_tickets; ?> open ticket<?php echo $open_tickets != 1 ? 's' : ''; ?></div>
                     </a>
+                    <a href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/admin/setup.php" class="db-tool t-purple">
+                        <div class="db-tool-ico">⚙️</div>
+                        <div class="db-tool-ttl">CRM Settings</div>
+                        <div class="db-tool-dsc">Paystack & alerts</div>
+                    </a>
+                    <a href="<?php echo DOL_URL_ROOT; ?>/admin/mails.php" class="db-tool t-indigo">
+                        <div class="db-tool-ico">📧</div>
+                        <div class="db-tool-ttl">Email / SMTP</div>
+                        <div class="db-tool-dsc">Mail server config</div>
+                    </a>
                 </div>
             </div>
 

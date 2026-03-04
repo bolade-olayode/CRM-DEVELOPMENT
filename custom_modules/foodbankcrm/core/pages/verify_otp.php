@@ -11,6 +11,7 @@ require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once DOL_DOCUMENT_ROOT . '/user/class/user.class.php';
 require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 
+
 $email = GETPOST('email', 'alpha');
 $action = GETPOST('action', 'alpha');
 $error = '';
@@ -80,15 +81,16 @@ if ($action == 'verify') {
     if (isOtpLocked($db, $email, $ip_address)) {
         $error = "Too many failed attempts. Please wait 15 minutes or request a new code.";
     } else {
-        $code_input = GETPOST('code', 'san_alphanum'); // OTP: digits/letters only, strip all HTML
+        $code_input = GETPOST('code', 'alpha'); // OTP: 6-digit code
 
-        // Expiry check done in MySQL (avoids PHP/MySQL timezone mismatch) — 10 min window
+        // Expiry check done in MySQL (avoids PHP/MySQL timezone mismatch) — 30 min window
         $sql = "SELECT * FROM " . MAIN_DB_PREFIX . "foodbank_email_verification
                 WHERE email = '" . $db->escape($email) . "'
                 AND code = '" . $db->escape($code_input) . "'
-                AND created_at > (NOW() - INTERVAL 10 MINUTE)";
+                AND created_at > (NOW() - INTERVAL 30 MINUTE)";
 
         $res = $db->query($sql);
+
 
         if ($res && $db->num_rows($res) > 0) {
             $obj = $db->fetch_object($res);
