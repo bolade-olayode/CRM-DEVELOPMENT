@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Subscription Success
  */
@@ -22,6 +22,7 @@ $subscriber = $db->fetch_object($db->query($sql_ben));
 $_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Subscription Activated');
 ?>
+<link rel="stylesheet" href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/css/responsive.css">
 <style>
     #id-top,.side-nav,.side-nav-vert,#id-left,.login_block,.tmenudiv,.nav-bar,header{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
     html,body{background:#f0f4f8!important;margin:0!important;padding:0!important;width:100%!important;overflow-x:hidden!important;font-family:'Segoe UI',system-ui,sans-serif}
@@ -63,6 +64,25 @@ llxHeader('', 'Subscription Activated');
     .btn-orders{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:10px 24px;background:#f1f5f9;color:#475569;font-size:13px;font-weight:600;border-radius:20px;text-decoration:none;transition:all .15s}
     .btn-orders:hover{background:#e2e8f0}
 </style>
+<script>
+(function(){
+    var btn = document.getElementById('fb-hamburger');
+    var links = document.querySelector('.fb-nav-links');
+    if (btn && links) {
+        btn.addEventListener('click', function(){
+            links.classList.toggle('fb-open');
+            btn.classList.toggle('open');
+        });
+        // Close on outside click
+        document.addEventListener('click', function(e){
+            if (!btn.contains(e.target) && !links.contains(e.target)) {
+                links.classList.remove('fb-open');
+                btn.classList.remove('open');
+            }
+        });
+    }
+})();
+</script>
 
 <?php
 print '<nav class="fb-nav">';
@@ -74,6 +94,7 @@ print '<a href="my_orders.php" class="fb-nav-link">Orders</a>';
 print '<a href="my_profile.php" class="fb-nav-link">Profile</a>';
 print '</div>';
 print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-logout">🚪 Logout</a>';
+print '<button class="fb-nav-hamburger" id="fb-hamburger" aria-label="Toggle menu"><span></span><span></span><span></span></button>';
 print '</nav>';
 
 print '<div class="page-wrap">';

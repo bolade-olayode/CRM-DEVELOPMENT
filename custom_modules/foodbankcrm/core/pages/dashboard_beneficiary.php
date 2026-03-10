@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * SUBSCRIBER DASHBOARD - FoodbankCRM
  */
@@ -52,6 +52,7 @@ $sub_name = trim($sub->firstname.' '.$sub->lastname) ?: $user->login;
 $_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'My Dashboard');
 ?>
+<link rel="stylesheet" href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/css/responsive.css">
 <style>
     /* ── RESET ──────────────────────────────────── */
     #id-top,.side-nav,.side-nav-vert,#id-left,.login_block,.tmenudiv,.nav-bar,header{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
@@ -147,6 +148,25 @@ llxHeader('', 'My Dashboard');
     .fb-pay-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 4px 14px rgba(245,158,11,.4);transition:all .2s;flex-shrink:0}
     .fb-pay-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(245,158,11,.5)}
 </style>
+<script>
+(function(){
+    var btn = document.getElementById('fb-hamburger');
+    var links = document.querySelector('.fb-nav-links');
+    if (btn && links) {
+        btn.addEventListener('click', function(){
+            links.classList.toggle('fb-open');
+            btn.classList.toggle('open');
+        });
+        // Close on outside click
+        document.addEventListener('click', function(e){
+            if (!btn.contains(e.target) && !links.contains(e.target)) {
+                links.classList.remove('fb-open');
+                btn.classList.remove('open');
+            }
+        });
+    }
+})();
+</script>
 
 <?php
 // ── TOPNAV ──────────────────────────────────────────────────────────────────
@@ -162,6 +182,7 @@ print '<div class="fb-nav-right">';
 print '<span class="fb-nav-name">Hi, '.dol_escape_htmltag($sub->firstname).'</span>';
 print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-logout">🚪 Logout</a>';
 print '</div>';
+print '<button class="fb-nav-hamburger" id="fb-hamburger" aria-label="Toggle menu"><span></span><span></span><span></span></button>';
 print '</nav>';
 
 // ── HERO ─────────────────────────────────────────────────────────────────────

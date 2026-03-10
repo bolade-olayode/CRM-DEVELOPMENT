@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Packages — Subscriber Package Browser
  */
@@ -42,6 +42,7 @@ if ($sub_id) {
 $_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Packages');
 ?>
+<link rel="stylesheet" href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/css/responsive.css">
 <style>
     #id-top,.side-nav,.side-nav-vert,#id-left,.login_block,.tmenudiv,.nav-bar,header{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
     html,body{background:#f0f4f8!important;margin:0!important;padding:0!important;width:100%!important;overflow-x:hidden!important;font-family:'Segoe UI',system-ui,sans-serif}
@@ -117,6 +118,25 @@ llxHeader('', 'Packages');
     .sticky-cart a{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;padding:14px 26px;border-radius:50px;font-weight:800;font-size:15px;text-decoration:none;box-shadow:0 6px 24px rgba(13,148,136,.4);transition:all .2s}
     .sticky-cart a:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(13,148,136,.5)}
 </style>
+<script>
+(function(){
+    var btn = document.getElementById('fb-hamburger');
+    var links = document.querySelector('.fb-nav-links');
+    if (btn && links) {
+        btn.addEventListener('click', function(){
+            links.classList.toggle('fb-open');
+            btn.classList.toggle('open');
+        });
+        // Close on outside click
+        document.addEventListener('click', function(e){
+            if (!btn.contains(e.target) && !links.contains(e.target)) {
+                links.classList.remove('fb-open');
+                btn.classList.remove('open');
+            }
+        });
+    }
+})();
+</script>
 
 <?php
 // NAV
@@ -132,6 +152,7 @@ print '<div class="fb-nav-right">';
 print '<a href="view_cart.php" class="fb-cart-btn">🛒 Cart'.($cart_cnt > 0 ? ' <span class="cart-badge">'.$cart_cnt.'</span>' : '').'</a>';
 print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-logout">🚪</a>';
 print '</div>';
+print '<button class="fb-nav-hamburger" id="fb-hamburger" aria-label="Toggle menu"><span></span><span></span><span></span></button>';
 print '</nav>';
 
 print '<div class="page-wrap">';

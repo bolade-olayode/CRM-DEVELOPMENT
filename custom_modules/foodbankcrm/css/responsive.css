@@ -1,0 +1,109 @@
+/* ── FoodbankCRM Mobile Responsive Styles ───────────────────────────────── */
+
+/* Hamburger button (hidden on desktop) */
+.fb-nav-hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background .2s;
+    flex-shrink: 0;
+}
+.fb-nav-hamburger:hover { background: rgba(255,255,255,.15); }
+.fb-nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    transition: all .25s;
+}
+.fb-nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.fb-nav-hamburger.open span:nth-child(2) { opacity: 0; }
+.fb-nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Mobile breakpoint (≤ 768px) ──────────────────────────────────────── */
+@media (max-width: 768px) {
+
+    /* Nav */
+    .fb-nav {
+        padding: 0 14px !important;
+    }
+    .fb-nav-links {
+        display: none;
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background: linear-gradient(180deg, #0f766e, #0d9488);
+        padding: 6px 0 12px;
+        z-index: 9998;
+        box-shadow: 0 8px 24px rgba(0,0,0,.25);
+        gap: 0;
+    }
+    .fb-nav-links.fb-open { display: flex; }
+    .fb-nav-link {
+        padding: 14px 22px !important;
+        border-radius: 0 !important;
+        font-size: 15px !important;
+        border-bottom: 1px solid rgba(255,255,255,.12);
+        width: 100%;
+    }
+    .fb-nav-hamburger { display: flex; }
+    .fb-nav-name       { display: none !important; }
+    .fb-nav-right      { gap: 8px !important; }
+
+    /* Hero sections */
+    .fb-hero {
+        padding: 28px 16px 70px !important;
+    }
+    .fb-hero-name   { font-size: 22px !important; }
+    .fb-hero-top    { flex-direction: column; gap: 14px; }
+    .fb-sub-badge   { align-self: flex-start; }
+
+    /* Page hero variants */
+    .page-hero,
+    .profile-hero {
+        padding-top: 24px !important;
+        padding-bottom: 24px !important;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    /* Stats grid */
+    .fb-stats {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+
+    /* Body / content wrapper */
+    .fb-body {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+
+    /* Payment banner */
+    .fb-pay-banner { padding-left: 14px !important; padding-right: 14px !important; }
+    .fb-pay-inner  { flex-direction: column; padding: 18px 16px !important; }
+    .fb-pay-btn    { width: 100%; justify-content: center; }
+
+    /* Cards */
+    .fb-card { padding: 16px !important; }
+
+    /* Action grid: 1 column on very small */
+    @media (max-width: 480px) {
+        .fb-actions-grid { grid-template-columns: 1fr 1fr; }
+    }
+}
+
+/* ── Small phones (≤ 480px) ──────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .fb-nav-brand { font-size: 15px !important; }
+    .fb-hero-name { font-size: 20px !important; }
+}

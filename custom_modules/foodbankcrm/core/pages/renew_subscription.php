@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Renew Subscription — Redesigned to match FoodbankCRM design system
  */
@@ -43,6 +43,7 @@ $sub_name   = trim($subscriber->firstname.' '.$subscriber->lastname) ?: $user->l
 $_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'Subscription Plans');
 ?>
+<link rel="stylesheet" href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/css/responsive.css">
 <style>
 /* ── RESET ───────────────────────────────────────────────── */
 #id-top,.side-nav,.side-nav-vert,#id-left,.login_block,.tmenudiv,.nav-bar,header{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
@@ -123,6 +124,25 @@ body{padding-top:64px!important}
 .btn-back{display:inline-flex;align-items:center;gap:6px;color:#64748b;text-decoration:none;font-size:14px;font-weight:600;transition:color .2s;padding:10px 0}
 .btn-back:hover{color:#0d9488}
 </style>
+<script>
+(function(){
+    var btn = document.getElementById('fb-hamburger');
+    var links = document.querySelector('.fb-nav-links');
+    if (btn && links) {
+        btn.addEventListener('click', function(){
+            links.classList.toggle('fb-open');
+            btn.classList.toggle('open');
+        });
+        // Close on outside click
+        document.addEventListener('click', function(e){
+            if (!btn.contains(e.target) && !links.contains(e.target)) {
+                links.classList.remove('fb-open');
+                btn.classList.remove('open');
+            }
+        });
+    }
+})();
+</script>
 
 <!-- Navbar -->
 <nav class="fb-nav">

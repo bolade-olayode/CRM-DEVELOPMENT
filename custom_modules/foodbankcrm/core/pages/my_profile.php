@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * My Profile - VIEW & EDIT
  */
@@ -78,6 +78,7 @@ if ($subscriber->subscription_end_date) {
 $_SESSION["mainmenu"] = "foodbankcrm";
 llxHeader('', 'My Profile');
 ?>
+<link rel="stylesheet" href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/css/responsive.css">
 <style>
     #id-top,.side-nav,.side-nav-vert,#id-left,.login_block,.tmenudiv,.nav-bar,header{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
     html,body{background:#f0f4f8!important;margin:0!important;padding:0!important;width:100%!important;overflow-x:hidden!important;font-family:'Segoe UI',system-ui,sans-serif}
@@ -162,6 +163,25 @@ llxHeader('', 'My Profile');
     .alert-success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
     .alert-error{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
 </style>
+<script>
+(function(){
+    var btn = document.getElementById('fb-hamburger');
+    var links = document.querySelector('.fb-nav-links');
+    if (btn && links) {
+        btn.addEventListener('click', function(){
+            links.classList.toggle('fb-open');
+            btn.classList.toggle('open');
+        });
+        // Close on outside click
+        document.addEventListener('click', function(e){
+            if (!btn.contains(e.target) && !links.contains(e.target)) {
+                links.classList.remove('fb-open');
+                btn.classList.remove('open');
+            }
+        });
+    }
+})();
+</script>
 
 <?php
 // NAV
@@ -177,6 +197,7 @@ print '</div>';
 print '<div class="fb-nav-right">';
 print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-logout">🚪 Logout</a>';
 print '</div>';
+print '<button class="fb-nav-hamburger" id="fb-hamburger" aria-label="Toggle menu"><span></span><span></span><span></span></button>';
 print '</nav>';
 
 print '<div class="page-wrap">';
