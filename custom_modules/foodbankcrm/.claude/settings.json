@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/foodbankcrm-mobile//**)",
+      "Bash(npm uninstall:*)",
+      "Bash(powershell.exe -Command \"Move-Item ''C:\\\\foodbankcrm-mobile\\\\app\\\\app\\\\app'' ''C:\\\\foodbankcrm-mobile\\\\app\\\\app\\\\router_temp'' -Force\")"
+    ],
+    "additionalDirectories": [
+      "c:\\foodbankcrm-mobile\\api",
+      "C:\\foodbankcrm-mobile\\app\\app\\lib",
+      "C:\\foodbankcrm-mobile\\app\\app\\constants",
+      "C:\\foodbankcrm-mobile\\app\\app\\app",
+      "C:\\foodbankcrm-mobile\\app\\app",
+      "C:\\foodbankcrm-mobile\\app\\node_modules",
+      "C:\\foodbankcrm-mobile"
+    ]
+  }
+}
