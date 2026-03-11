@@ -1,5 +1,8 @@
 /* ── FoodbankCRM Mobile Responsive Styles ───────────────────────────────── */
 
+/* Close button: hidden by default, only shown inside mobile dropdown */
+.fb-nav-close-btn { display: none; }
+
 /* Hamburger button (hidden on desktop) */
 .fb-nav-hamburger {
     display: none;

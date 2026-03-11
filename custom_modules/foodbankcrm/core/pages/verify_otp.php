@@ -160,6 +160,10 @@ if ($action == 'verify') {
         .success { background: #dcfce7; color: #166534; padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
         .resend-link { display: inline-block; margin-top: 20px; color: #64748b; text-decoration: none; font-size: 14px; cursor: pointer; background: none; border: none; padding: 0; }
         .resend-link:hover { color: #2563eb; text-decoration: underline; }
+        @media(max-width:440px){
+            body { align-items: flex-start; padding: 40px 16px; height: auto; }
+            .box { padding: 28px 18px; }
+        }
     </style>
 </head>
 <body>

@@ -75,12 +75,21 @@ echo '<style>
         .grid-stats { display: grid !important; grid-template-columns: 1fr 1fr 1fr 1fr !important; gap: 10px !important; }
         .grid-split { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 20px !important; }
     }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    @media(max-width:768px){
+        .report-container { padding: 20px 14px !important; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        .page-header > div:last-child { flex-wrap: wrap; gap: 8px; }
+        .grid-split { grid-template-columns: 1fr !important; }
+        .grid-stats { grid-template-columns: 1fr 1fr !important; }
+    }
+    @media(max-width:480px){ .grid-stats { grid-template-columns: 1fr !important; } }
 </style>';
 
 print '<div class="report-container">';
 
 // HEADER
-print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">';
+print '<div class="page-header">';
 print '<div>';
 print '<h1 style="margin: 0; color: #2c3e50;">📊 Supply Performance Report</h1>';
 print '<p style="color: #666; margin: 5px 0 0 0;">Vendor: <strong>'.dol_escape_htmltag($vendor->name).'</strong></p>';

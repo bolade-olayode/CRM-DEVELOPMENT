@@ -81,12 +81,23 @@ print '<style>
     /* 7. FILTER BOX */
     .filter-box { background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 25px; display: inline-block; }
     .filter-select { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-left: 10px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    @media(max-width:768px){
+        .vendor-container { padding: 20px 14px !important; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        .page-header > div:last-child { flex-wrap: wrap; gap: 8px; }
+        .stats-grid { grid-template-columns: 1fr 1fr !important; }
+        .filter-box { width: 100%; box-sizing: border-box; }
+        .filter-box form { flex-wrap: wrap; gap: 8px; }
+        .filter-select { margin-left: 0; width: 100%; }
+    }
+    @media(max-width:480px){ .stats-grid { grid-template-columns: 1fr !important; } }
 </style>';
 
 print '<div class="vendor-container">';
 
 // --- HEADER ---
-print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">';
+print '<div class="page-header">';
 print '<div>';
 if ($user_is_admin) {
     print '<h1 style="margin: 0; color: #2c3e50; font-size: 28px;">📦 All Inventory Logs (Admin)</h1>';

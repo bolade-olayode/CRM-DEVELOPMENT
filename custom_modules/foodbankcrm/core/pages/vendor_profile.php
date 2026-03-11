@@ -69,6 +69,15 @@ echo '<style>
     .alert-box { padding: 15px; border-radius: 8px; margin-bottom: 25px; }
     .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .profile-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
+    @media(max-width:768px){
+        .vendor-container { padding: 20px 14px !important; }
+        .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+        .page-header > div:last-child { flex-wrap: wrap; gap: 8px; }
+        .profile-grid { grid-template-columns: 1fr !important; }
+        .form-card { padding: 20px; }
+    }
 </style>';
 
 $notice = '';
@@ -111,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 print '<div class="vendor-container">';
 
 // HEADER
-print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">';
+print '<div class="page-header">';
 print '<div>';
 print '<h1 style="margin: 0; color: #2c3e50;">👤 My Business Profile</h1>';
 print '<p style="color: #666; margin: 5px 0 0 0;">Manage your company details</p>';
@@ -126,7 +135,7 @@ print '</div>';
 
 print $notice;
 
-print '<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">';
+print '<div class="profile-grid">';
 
 // --- LEFT COLUMN: EDIT FORM ---
 print '<div>';

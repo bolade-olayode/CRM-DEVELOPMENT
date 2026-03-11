@@ -210,6 +210,14 @@ textarea.form-control { resize: vertical; }
 
 .empty-state { text-align: center; padding: 50px 40px; color: #94a3b8; }
 .empty-state h3 { font-size: 16px; color: #64748b; margin: 0 0 6px; }
+@media(max-width:768px){
+    .fb-wrap { padding: 20px 14px !important; }
+    .stats-strip { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .sp-grid.two-col { grid-template-columns: 1fr !important; }
+    .stat-tile { padding: 14px 16px; }
+    .stat-tile .val { font-size: 24px; }
+}
+@media(max-width:480px){ .stats-strip { grid-template-columns: 1fr !important; } }
 </style>
 
 <?php

@@ -178,6 +178,11 @@ if ($action == 'register' && empty($error)) {
         .strength-text { font-size: 12px; color: #64748b; margin-top: 4px; text-align: right; display: block; height: 16px; }
 
         .error-box { background: #fee2e2; color: #c53030; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: center; }
+        @media(max-width:640px){
+            body { padding: 20px 14px; }
+            .container { padding: 24px 18px; }
+            .grid-2 { grid-template-columns: 1fr !important; }
+        }
     </style>
 </head>
 <body>

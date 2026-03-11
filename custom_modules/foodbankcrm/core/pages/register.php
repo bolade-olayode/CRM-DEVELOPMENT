@@ -184,6 +184,13 @@ if ($action == 'register' && empty($error)) {
         .strength-text { font-size: 12px; color: #64748b; margin-top: 4px; text-align: right; display: block; height: 16px; }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media(max-width:640px){
+            .container { padding: 20px 14px; }
+            .header h1 { font-size: 24px; }
+            .header p { font-size: 15px; }
+            .reg-form { padding: 24px 16px; }
+            .plan-card { padding: 20px; }
+        }
     </style>
 </head>
 <body>

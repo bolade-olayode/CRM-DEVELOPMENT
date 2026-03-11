@@ -96,6 +96,10 @@ print '<style>
     .alert-box { padding: 15px; border-radius: 8px; margin-bottom: 25px; font-weight: 500; font-size: 14px; }
     .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    @media(max-width:640px){
+        .ben-container { padding: 20px 14px !important; }
+        .auth-card { padding: 24px 16px; }
+    }
 </style>';
 
 $error = '';
