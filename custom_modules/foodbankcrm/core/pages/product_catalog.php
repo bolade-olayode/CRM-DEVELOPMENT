@@ -55,6 +55,10 @@ llxHeader('', 'Packages');
     .fb-nav{position:fixed;top:0;left:0;right:0;height:64px;background:linear-gradient(90deg,#0f766e,#0d9488);display:flex;align-items:center;justify-content:space-between;padding:0 28px;z-index:9999;box-shadow:0 2px 16px rgba(0,0,0,.18)}
     .fb-nav-brand{font-size:17px;font-weight:800;color:#fff;text-decoration:none}
     .fb-nav-links{display:flex;gap:2px}
+    @media(max-width:768px){
+        .fb-nav-links{display:none!important;position:fixed;top:64px;left:0;right:0;flex-direction:column;background:linear-gradient(180deg,#0f766e,#0d9488);padding:6px 0 12px;z-index:9998;box-shadow:0 8px 24px rgba(0,0,0,.25);gap:0}
+        .fb-nav-links.fb-open{display:flex!important}
+    }
     .fb-nav-link{color:rgba(255,255,255,.82);text-decoration:none;font-size:13px;font-weight:500;padding:7px 14px;border-radius:20px;transition:background .15s}
     .fb-nav-link:hover,.fb-nav-link.active{background:rgba(255,255,255,.18);color:#fff}
     .fb-nav-right{display:flex;align-items:center;gap:14px}
@@ -119,23 +123,29 @@ llxHeader('', 'Packages');
     .sticky-cart a:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(13,148,136,.5)}
 </style>
 <script>
-(function(){
+document.addEventListener('DOMContentLoaded', function(){
     var btn = document.getElementById('fb-hamburger');
     var links = document.querySelector('.fb-nav-links');
-    if (btn && links) {
-        btn.addEventListener('click', function(){
-            links.classList.toggle('fb-open');
-            btn.classList.toggle('open');
-        });
-        // Close on outside click
-        document.addEventListener('click', function(e){
-            if (!btn.contains(e.target) && !links.contains(e.target)) {
-                links.classList.remove('fb-open');
-                btn.classList.remove('open');
-            }
-        });
-    }
-})();
+    if (!btn || !links) return;
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'fb-nav-close-btn';
+    closeBtn.innerHTML = '&#10005;&nbsp;&nbsp;Close';
+    closeBtn.addEventListener('click', function(){
+        links.classList.remove('fb-open');
+        btn.classList.remove('open');
+    });
+    links.insertBefore(closeBtn, links.firstChild);
+    btn.addEventListener('click', function(){
+        links.classList.toggle('fb-open');
+        btn.classList.toggle('open');
+    });
+    document.addEventListener('click', function(e){
+        if (!btn.contains(e.target) && !links.contains(e.target)) {
+            links.classList.remove('fb-open');
+            btn.classList.remove('open');
+        }
+    });
+});
 </script>
 
 <?php

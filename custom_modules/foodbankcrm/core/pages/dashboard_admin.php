@@ -219,6 +219,23 @@ llxHeader('', 'Admin Dashboard');
 .db-empty { padding: 40px; text-align: center; color: #94a3b8; }
 .db-empty div { font-size: 32px; margin-bottom: 8px; }
 .db-empty p   { margin: 0; font-size: 13px; }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+    .db-hero { padding: 24px 16px 80px !important; }
+    .db-hero-inner { flex-direction: column; gap: 14px; }
+    .db-hero h1 { font-size: 21px !important; }
+    .db-hero-inner > div:last-child { align-items: flex-start !important; flex-direction: row; flex-wrap: wrap; gap: 10px; }
+    .db-hero-date { text-align: left; }
+    .db-stats-outer { padding: 0 14px !important; }
+    .db-content { padding: 0 14px !important; }
+    .db-table th, .db-table td { padding: 10px 12px; font-size: 12px; }
+    .db-tools-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+    .db-hero h1 { font-size: 18px !important; }
+    .db-stat-val { font-size: 22px; }
+}
 </style>
 
 <div class="db-wrap">

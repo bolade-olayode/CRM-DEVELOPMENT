@@ -122,6 +122,51 @@ llxHeader('', 'Vendor Dashboard');
     }
     .fb-btn-logout:hover { background: white; color: var(--accent); border-color: white; }
 
+    /* Close button: hidden by default, only visible inside mobile dropdown */
+    .fb-topnav-close-btn { display: none; }
+
+    /* ── Hamburger ────────────────────────────────── */
+    .fb-hamburger { display:none; flex-direction:column; justify-content:center; gap:5px; background:transparent; border:none; cursor:pointer; padding:8px; border-radius:6px; transition:background .2s; flex-shrink:0; }
+    .fb-hamburger:hover { background:rgba(255,255,255,.15); }
+    .fb-hamburger span { display:block; width:22px; height:2px; background:#fff; border-radius:2px; transition:all .25s; }
+    .fb-hamburger.open span:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+    .fb-hamburger.open span:nth-child(2) { opacity:0; }
+    .fb-hamburger.open span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+
+    /* ── Mobile (≤768px) ──────────────────────────── */
+    @media (max-width: 768px) {
+        .fb-topnav { padding: 0 14px !important; }
+        .fb-topnav-links {
+            display: none;
+            position: fixed;
+            top: 60px; left: 0; right: 0;
+            flex-direction: column;
+            background: linear-gradient(180deg, #b45309, #d97706);
+            padding: 6px 0 12px;
+            z-index: 9998;
+            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+            gap: 0;
+        }
+        .fb-topnav-links.fb-open { display: flex; }
+        .fb-topnav-link { padding: 14px 22px 14px 28px !important; border-radius: 0 !important; font-size: 15px !important; border-bottom: 1px solid rgba(255,255,255,.12); width: 100%; }
+        .fb-hamburger { display: flex; }
+        .fb-topnav-name { display: none !important; }
+        .fb-container { padding: 24px 14px !important; }
+        .fb-header h1 { font-size: 22px !important; }
+        .fb-topnav-close-btn {
+            display: flex; align-items: center; justify-content: center;
+            width: calc(100% - 28px); margin: 8px 14px 6px;
+            padding: 11px; background: rgba(255,255,255,.18);
+            color: #fff; border: 1px solid rgba(255,255,255,.3);
+            border-radius: 8px; font-size: 14px; font-weight: 700;
+            cursor: pointer; letter-spacing: .3px;
+        }
+        .fb-topnav-close-btn:hover { background: rgba(255,255,255,.28); }
+    }
+    @media (max-width: 480px) {
+        .fb-topnav-brand { font-size: 15px !important; }
+    }
+
     /* Main Container */
     .fb-container {
         width: 95%;
@@ -244,6 +289,31 @@ llxHeader('', 'Vendor Dashboard');
     }
     .fb-logout-plain:hover { background: #f1f5f9; }
 </style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btn   = document.getElementById('fbHamburger');
+    var links = document.querySelector('.fb-topnav-links');
+    if (!btn || !links) return;
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'fb-topnav-close-btn';
+    closeBtn.innerHTML = '&#10005;&nbsp;&nbsp;Close';
+    closeBtn.addEventListener('click', function () {
+        links.classList.remove('fb-open');
+        btn.classList.remove('open');
+    });
+    links.insertBefore(closeBtn, links.firstChild);
+    btn.addEventListener('click', function () {
+        links.classList.toggle('fb-open');
+        btn.classList.toggle('open');
+    });
+    document.addEventListener('click', function (e) {
+        if (!btn.contains(e.target) && !links.contains(e.target)) {
+            links.classList.remove('fb-open');
+            btn.classList.remove('open');
+        }
+    });
+});
+</script>
 
 <?php
 // ===== GATEKEEPER: Pending Vendors =====
@@ -291,6 +361,9 @@ print '<div class="fb-topnav-user">';
 print '<span class="fb-topnav-name">'.dol_escape_htmltag($vendor->name).'</span>';
 print '<a href="'.DOL_URL_ROOT.'/user/logout.php" class="fb-btn-logout">🚪 Logout</a>';
 print '</div>';
+print '<button class="fb-hamburger" id="fbHamburger" aria-label="Toggle menu">';
+print '<span></span><span></span><span></span>';
+print '</button>';
 print '</div>';
 
 // --- MAIN CONTENT ---
