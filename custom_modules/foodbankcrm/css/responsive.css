@@ -1,8 +1,5 @@
 /* ── FoodbankCRM Mobile Responsive Styles ───────────────────────────────── */
 
-/* Close button: hidden by default, only shown inside mobile dropdown */
-.fb-nav-close-btn { display: none; }
-
 /* Hamburger button (hidden on desktop) */
 .fb-nav-hamburger {
     display: none;
@@ -104,24 +101,6 @@
         .fb-actions-grid { grid-template-columns: 1fr 1fr; }
     }
 
-    /* Close button injected into mobile dropdown */
-    .fb-nav-close-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: calc(100% - 28px);
-        margin: 8px 14px 6px;
-        padding: 11px;
-        background: rgba(255,255,255,.18);
-        color: #fff;
-        border: 1px solid rgba(255,255,255,.3);
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-        letter-spacing: .3px;
-    }
-    .fb-nav-close-btn:hover { background: rgba(255,255,255,.28); }
 }
 
 /* ── Small phones (≤ 480px) ──────────────────────────────────────────── */

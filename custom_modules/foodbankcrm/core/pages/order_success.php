@@ -49,11 +49,18 @@ echo '<style>
 .fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
 body { background: #f8f9fa !important; }
 .login_block { width: 100% !important; }
+.os-wrap { width: 100%; padding: 30px; box-sizing: border-box; max-width: 800px; margin: 0 auto; }
+.os-card { background: white; padding: 50px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.os-detail-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+@media(max-width:640px){
+    .os-wrap { padding: 16px; }
+    .os-card { padding: 24px 16px; }
+}
 </style>';
 
-print '<div style="width: 100%; padding: 30px; box-sizing: border-box; max-width: 800px; margin: 0 auto;">';
+print '<div class="os-wrap">';
 
-print '<div style="background: white; padding: 50px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+print '<div class="os-card">';
 
 print '<div style="font-size: 80px; margin-bottom: 20px;">✅</div>';
 

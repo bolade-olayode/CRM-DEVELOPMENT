@@ -122,9 +122,6 @@ llxHeader('', 'Vendor Dashboard');
     }
     .fb-btn-logout:hover { background: white; color: var(--accent); border-color: white; }
 
-    /* Close button: hidden by default, only visible inside mobile dropdown */
-    .fb-topnav-close-btn { display: none; }
-
     /* ── Hamburger ────────────────────────────────── */
     .fb-hamburger { display:none; flex-direction:column; justify-content:center; gap:5px; background:transparent; border:none; cursor:pointer; padding:8px; border-radius:6px; transition:background .2s; flex-shrink:0; }
     .fb-hamburger:hover { background:rgba(255,255,255,.15); }
@@ -153,15 +150,6 @@ llxHeader('', 'Vendor Dashboard');
         .fb-topnav-name { display: none !important; }
         .fb-container { padding: 24px 14px !important; }
         .fb-header h1 { font-size: 22px !important; }
-        .fb-topnav-close-btn {
-            display: flex; align-items: center; justify-content: center;
-            width: calc(100% - 28px); margin: 8px 14px 6px;
-            padding: 11px; background: rgba(255,255,255,.18);
-            color: #fff; border: 1px solid rgba(255,255,255,.3);
-            border-radius: 8px; font-size: 14px; font-weight: 700;
-            cursor: pointer; letter-spacing: .3px;
-        }
-        .fb-topnav-close-btn:hover { background: rgba(255,255,255,.28); }
     }
     @media (max-width: 480px) {
         .fb-topnav-brand { font-size: 15px !important; }
@@ -294,14 +282,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn   = document.getElementById('fbHamburger');
     var links = document.querySelector('.fb-topnav-links');
     if (!btn || !links) return;
-    var closeBtn = document.createElement('button');
-    closeBtn.className = 'fb-topnav-close-btn';
-    closeBtn.innerHTML = '&#10005;&nbsp;&nbsp;Close';
-    closeBtn.addEventListener('click', function () {
-        links.classList.remove('fb-open');
-        btn.classList.remove('open');
-    });
-    links.insertBefore(closeBtn, links.firstChild);
     btn.addEventListener('click', function () {
         links.classList.toggle('fb-open');
         btn.classList.toggle('open');

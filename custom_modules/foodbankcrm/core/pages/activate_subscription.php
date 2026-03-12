@@ -111,6 +111,7 @@ try {
                    subscription_start_date = '".$db->escape($start_date)."',
                    subscription_end_date = '".$db->escape($end_date)."',
                    subscription_fee = ".(float)$tier->price.",
+                   max_orders_per_month = ".(int)$tier->max_orders_per_month.",
                    payment_method = 'Paystack',
                    last_payment_date = NOW()
                    WHERE rowid = ".$subscriber_id." AND fk_user = ".(int)$user->id;
@@ -145,7 +146,11 @@ try {
     $res_sub_e = $db->query($sql_sub_e);
     $sub_e     = $db->fetch_object($res_sub_e);
     if ($sub_e) {
-        FoodbankMailer::sendSubscriptionActivated($sub_e, $tier->tier_name, $end_date);
+        try {
+            FoodbankMailer::sendSubscriptionActivated($sub_e, $tier->tier_name, $end_date);
+        } catch (Exception $e) {
+            dol_syslog("Subscription activation email failed for subscriber $subscriber_id: " . $e->getMessage(), LOG_ERR);
+        }
     }
 
     echo json_encode(['status' => 'success', 'end_date' => $end_date]);

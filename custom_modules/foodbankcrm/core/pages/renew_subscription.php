@@ -133,14 +133,6 @@ document.addEventListener('DOMContentLoaded', function(){
     var btn = document.getElementById('fb-hamburger');
     var links = document.querySelector('.fb-nav-links');
     if (!btn || !links) return;
-    var closeBtn = document.createElement('button');
-    closeBtn.className = 'fb-nav-close-btn';
-    closeBtn.innerHTML = '&#10005;&nbsp;&nbsp;Close';
-    closeBtn.addEventListener('click', function(){
-        links.classList.remove('fb-open');
-        btn.classList.remove('open');
-    });
-    links.insertBefore(closeBtn, links.firstChild);
     btn.addEventListener('click', function(){
         links.classList.toggle('fb-open');
         btn.classList.toggle('open');

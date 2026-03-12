@@ -17,6 +17,11 @@ $action = GETPOST('action', 'alpha');
 $error = '';
 $success_msg = '';
 
+if (empty($email)) {
+    header('Location: register.php');
+    exit;
+}
+
 $ip_address = $_SERVER['REMOTE_ADDR'];
 
 // --- Helper: Check brute-force lockout ---
@@ -70,9 +75,13 @@ if ($action == 'resend') {
         $sql_fn = "SELECT firstname FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE email = '".$db->escape($email)."' LIMIT 1";
         $res_fn = $db->query($sql_fn);
         $fn_obj = ($res_fn && $db->num_rows($res_fn) > 0) ? $db->fetch_object($res_fn) : null;
-        FoodbankMailer::sendOtpEmail($email, $fn_obj ? $fn_obj->firstname : '', $otp);
-
-        $success_msg = "A new code has been sent to your email.";
+        try {
+            FoodbankMailer::sendOtpEmail($email, $fn_obj ? $fn_obj->firstname : '', $otp);
+            $success_msg = "A new code has been sent to your email.";
+        } catch (Exception $e) {
+            dol_syslog("OTP resend email failed for $email: " . $e->getMessage(), LOG_ERR);
+            $success_msg = "A new code was generated. If the email doesn't arrive in a few minutes, please try again.";
+        }
     }
 }
 

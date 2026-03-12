@@ -101,28 +101,32 @@ if ($result && isset($result->data) && $result->data->status == 'success') {
                        subscription_start_date = '".$db->escape($start_date)."',
                        subscription_end_date = '".$db->escape($end_date)."',
                        subscription_fee = ".(float)$tier->price.",
+                       max_orders_per_month = ".(int)$tier->max_orders_per_month.",
                        payment_method = 'Paystack',
                        last_payment_date = NOW()
                        WHERE rowid = ".(int)$subscriber_id;
-        
+
         if (!$db->query($sql_update)) throw new Exception('Profile Update Failed: '.$db->lasterror());
-        
-        // Record Transaction
-        $sql_payment = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_payments 
-                        (fk_subscriber, payment_type, amount, payment_method, payment_status, 
-                         payment_reference, payment_date, datec)
-                        VALUES (
-                            ".(int)$subscriber_id.",
-                            'Subscription',
-                            ".(float)$amount.",
-                            'Paystack',
-                            'Success',
-                            '".$db->escape($reference)."',
-                            NOW(),
-                            NOW()
-                        )";
-        
-        if (!$db->query($sql_payment)) throw new Exception('Payment Record Failed: '.$db->lasterror());
+
+        // Prevent duplicate payment records
+        $sql_check = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_payments WHERE payment_reference = '".$db->escape($reference)."'";
+        $res_dup = $db->query($sql_check);
+        if ($res_dup && $db->num_rows($res_dup) == 0) {
+            $sql_payment = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_payments
+                            (fk_subscriber, payment_type, amount, payment_method, payment_status,
+                             payment_reference, payment_date, datec)
+                            VALUES (
+                                ".(int)$subscriber_id.",
+                                'Subscription',
+                                ".(float)$amount.",
+                                'Paystack',
+                                'Success',
+                                '".$db->escape($reference)."',
+                                NOW(),
+                                NOW()
+                            )";
+            if (!$db->query($sql_payment)) throw new Exception('Payment Record Failed: '.$db->lasterror());
+        }
         
         $db->commit();
         
