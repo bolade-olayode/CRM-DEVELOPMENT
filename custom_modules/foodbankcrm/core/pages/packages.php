@@ -51,6 +51,7 @@ llxHeader('', 'Manage Packages');
 .pkg-card-top { background: var(--accent); padding: 20px 24px; }
 .pkg-card-top .pkg-ref { font-size: 11px; color: rgba(255,255,255,.7); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
 .pkg-card-top .pkg-name { font-size: 18px; font-weight: 800; color: #fff; margin: 0; }
+.pkg-card-img { width: 100%; height: 160px; object-fit: cover; display: block; border-bottom: 1px solid #e2e8f0; }
 .pkg-card-body { padding: 18px 24px; }
 .pkg-card-body .pkg-desc { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 16px; min-height: 38px; }
 .pkg-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -119,6 +120,9 @@ if ($res) while ($o = $db->fetch_object($res)) $packages[] = $o;
             $badge_class = $is_active ? 'badge-active' : 'badge-inactive';
         ?>
         <div class="pkg-card">
+            <?php if (!empty($obj->image_url)): ?>
+            <img src="<?php echo dol_escape_htmltag($obj->image_url); ?>" alt="<?php echo dol_escape_htmltag($obj->name); ?>" class="pkg-card-img">
+            <?php endif; ?>
             <div class="pkg-card-top">
                 <div class="pkg-ref"><?php echo dol_escape_htmltag($obj->ref); ?></div>
                 <div class="pkg-name"><?php echo dol_escape_htmltag($obj->name); ?></div>

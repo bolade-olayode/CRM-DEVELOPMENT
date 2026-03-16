@@ -27,22 +27,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
         $notice = ['error', 'Security check failed: invalid token.'];
     } else {
-        $tier_name       = GETPOST('tier_name', 'alphanohtml');
-        $tier_type       = GETPOST('tier_type', 'alphanohtml');
-        $duration_months = (int)GETPOST('duration_months', 'int');
-        $price           = (float)str_replace(',', '.', GETPOST('price', 'alpha'));
-        $description     = GETPOST('description', 'restricthtml');
-        $benefits        = GETPOST('benefits', 'restricthtml');
-        $duration_days   = $duration_months * 30;
+        $tier_name            = GETPOST('tier_name', 'alphanohtml');
+        $tier_type            = GETPOST('tier_type', 'alphanohtml');
+        $duration_months      = (int)GETPOST('duration_months', 'int');
+        $price                = (float)str_replace(',', '.', GETPOST('price', 'alpha'));
+        $description          = GETPOST('description', 'restricthtml');
+        $benefits             = GETPOST('benefits', 'restricthtml');
+        $can_place_orders     = (int)(GETPOST('can_place_orders', 'int') == '1');
+        $max_orders_per_month = max(0, (int)GETPOST('max_orders_per_month', 'int'));
+        $duration_days        = $duration_months * 30;
 
         $sql = "UPDATE ".MAIN_DB_PREFIX."foodbank_subscription_tiers SET
-                tier_name       = '".$db->escape($tier_name)."',
-                tier_type       = '".$db->escape($tier_type)."',
-                duration_months = ".$duration_months.",
-                duration_days   = ".$duration_days.",
-                price           = ".$price.",
-                description     = '".$db->escape($description)."',
-                benefits        = '".$db->escape($benefits)."'
+                tier_name            = '".$db->escape($tier_name)."',
+                tier_type            = '".$db->escape($tier_type)."',
+                duration_months      = ".$duration_months.",
+                duration_days        = ".$duration_days.",
+                price                = ".$price.",
+                description          = '".$db->escape($description)."',
+                benefits             = '".$db->escape($benefits)."',
+                can_place_orders     = ".$can_place_orders.",
+                max_orders_per_month = ".$max_orders_per_month."
                 WHERE rowid = ".$tier_id;
 
         if ($db->query($sql)) {
@@ -107,6 +111,16 @@ llxHeader('', 'Edit Subscription Tier');
 .meta-bar { display: flex; gap: 16px; flex-wrap: wrap; background: var(--accent-light); border-radius: 10px; padding: 14px 18px; margin-bottom: 24px; }
 .meta-item { font-size: 13px; color: var(--accent-dark); }
 .meta-item strong { font-weight: 700; }
+
+/* Order access toggle */
+.order-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.order-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+.order-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; border: 2px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; cursor: pointer; transition: all .2s; }
+.order-card:hover { border-color: #a5b4fc; background: #fafbff; }
+.order-option input[type="radio"]:checked + .order-card { border-color: var(--accent); background: var(--accent-light); }
+.order-card .oc-icon { font-size: 22px; }
+.order-card .oc-title { font-weight: 700; font-size: 14px; color: #1e293b; }
+.order-card .oc-desc  { font-size: 12px; color: #64748b; line-height: 1.4; }
 </style>
 
 <div class="fb-wrap">
@@ -181,6 +195,36 @@ llxHeader('', 'Edit Subscription Tier');
                 <label>Benefits</label>
                 <textarea name="benefits" rows="4"><?php echo dol_escape_htmltag($tier->benefits); ?></textarea>
                 <div class="hint">List one benefit per line.</div>
+            </div>
+
+            <p class="form-section">Order Permissions</p>
+
+            <div class="form-group">
+                <label>Can members on this tier place food orders? <span class="required">*</span></label>
+                <div class="order-toggle">
+                    <label class="order-option">
+                        <input type="radio" name="can_place_orders" value="1" <?php echo (int)($tier->can_place_orders ?? 0) ? 'checked' : ''; ?>>
+                        <div class="order-card">
+                            <span class="oc-icon">✅</span>
+                            <span class="oc-title">Can Place Orders</span>
+                            <span class="oc-desc">Members can browse packages and place food orders in the app</span>
+                        </div>
+                    </label>
+                    <label class="order-option">
+                        <input type="radio" name="can_place_orders" value="0" <?php echo !(int)($tier->can_place_orders ?? 0) ? 'checked' : ''; ?>>
+                        <div class="order-card">
+                            <span class="oc-icon">👁️</span>
+                            <span class="oc-title">Browse Only</span>
+                            <span class="oc-desc">Members can view packages but cannot checkout — app will prompt them to upgrade</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Max Orders per Month</label>
+                <input type="number" name="max_orders_per_month" min="0" value="<?php echo (int)($tier->max_orders_per_month ?? 0); ?>">
+                <div class="hint">How many orders a member can place each calendar month. Set to <strong>0</strong> for unlimited.</div>
             </div>
 
             <div style="margin-top: 28px; display: flex; justify-content: flex-end; gap: 12px;">

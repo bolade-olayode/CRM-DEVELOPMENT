@@ -12,10 +12,6 @@ ob_clean();
 
 global $user, $db, $conf;
 
-if (isset($_SESSION['foodbank_checked'])) {
-    $_SESSION['foodbank_checked'] = false;
-}
-
 $langs->load("admin");
 
 if (!FoodbankPermissions::isBeneficiary($user, $db)) {
@@ -30,7 +26,7 @@ if (!$res_ben || $db->num_rows($res_ben) == 0) {
 $subscriber    = $db->fetch_object($res_ben);
 $subscriber_id = (int)$subscriber->rowid;
 
-$sql_tiers = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE status = 'Active' ORDER BY price ASC";
+$sql_tiers = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers WHERE is_active = 1 ORDER BY price ASC";
 $res_tiers = $db->query($sql_tiers);
 
 $days_left = null;

@@ -282,6 +282,218 @@ if (strpos($reference, 'ORD-') === 0 && $metadata && isset($metadata->order_id))
         echo json_encode(['error' => 'Activation failed']);
     }
 
+// ===== MOBILE APP PAYMENT (reference starts with APP-) =====
+} elseif (strpos($reference, 'APP-') === 0 && $metadata) {
+
+    $type = isset($metadata->type) ? (string)$metadata->type : '';
+    $bid  = isset($metadata->beneficiary_id) ? (int)$metadata->beneficiary_id : 0;
+
+    // ── APP order ─────────────────────────────────────────────────────────────
+    if ($type === 'order' && $bid > 0) {
+
+        // Find the pending intent saved by payment.php
+        $sql_intent = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_pending_orders
+                       WHERE payment_reference = '".$db->escape($reference)."'
+                         AND status = 'pending' LIMIT 1";
+        $res_intent = $db->query($sql_intent);
+        $intent     = ($res_intent && $db->num_rows($res_intent) > 0) ? $db->fetch_object($res_intent) : null;
+
+        if (!$intent) {
+            // Already handled or unknown
+            http_response_code(200);
+            echo json_encode(['status' => 'already_processed', 'type' => 'app_order']);
+            exit;
+        }
+
+        $delivery_address = $intent->delivery_address;
+        $notes            = $intent->notes ?? '';
+
+        // Check if app already placed the order
+        $sql_dup_ord = "SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_distributions
+                        WHERE payment_reference = '".$db->escape($reference)."' LIMIT 1";
+        $res_dup_ord = $db->query($sql_dup_ord);
+        if ($res_dup_ord && $db->num_rows($res_dup_ord) > 0) {
+            $db->query("UPDATE ".MAIN_DB_PREFIX."foodbank_pending_orders
+                        SET status = 'completed'
+                        WHERE payment_reference = '".$db->escape($reference)."'");
+            http_response_code(200);
+            echo json_encode(['status' => 'already_processed', 'type' => 'app_order']);
+            exit;
+        }
+
+        // Get cart items
+        $sql_cart = "SELECT c.fk_package, c.quantity, c.unit_price, p.name AS package_name
+                     FROM ".MAIN_DB_PREFIX."foodbank_cart c
+                     JOIN ".MAIN_DB_PREFIX."foodbank_packages p ON p.rowid = c.fk_package
+                     WHERE c.fk_subscriber = ".$bid;
+        $res_cart  = $db->query($sql_cart);
+
+        if (!$res_cart || $db->num_rows($res_cart) == 0) {
+            $db->query("UPDATE ".MAIN_DB_PREFIX."foodbank_pending_orders
+                        SET status = 'completed'
+                        WHERE payment_reference = '".$db->escape($reference)."'");
+            http_response_code(200);
+            echo json_encode(['status' => 'cart_empty']);
+            exit;
+        }
+
+        $cart_items = [];
+        $total      = 0;
+        while ($ci = $db->fetch_object($res_cart)) {
+            $cart_items[] = $ci;
+            $total       += $ci->quantity * $ci->unit_price;
+        }
+
+        $ord_ref   = 'ORD-' . strtoupper(substr(md5(uniqid()), 0, 8));
+        $full_note = $delivery_address . ($notes ? ' -- ' . $notes : '');
+
+        $db->begin();
+        try {
+            $sql_dist = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_distributions
+                         (ref, fk_beneficiary, status, total_amount, note,
+                          payment_reference, payment_status, date_distribution, datec, tms)
+                         VALUES (
+                           '".$db->escape($ord_ref)."', ".$bid.", 'Prepared',
+                           ".(float)$total.", '".$db->escape($full_note)."',
+                           '".$db->escape($reference)."', 'Paid', NOW(), NOW(), NOW()
+                         )";
+            if (!$db->query($sql_dist)) throw new Exception($db->lasterror());
+            $order_id = $db->last_insert_id(MAIN_DB_PREFIX.'foodbank_distributions', 'rowid');
+
+            foreach ($cart_items as $ci) {
+                $sql_pi = "SELECT product_name, quantity, unit
+                           FROM ".MAIN_DB_PREFIX."foodbank_package_items
+                           WHERE fk_package = ".(int)$ci->fk_package;
+                $res_pi = $db->query($sql_pi);
+
+                if ($res_pi && $db->num_rows($res_pi) > 0) {
+                    while ($pi = $db->fetch_object($res_pi)) {
+                        $line_qty = round($pi->quantity * $ci->quantity, 2);
+                        $db->query("INSERT INTO ".MAIN_DB_PREFIX."foodbank_distribution_lines
+                                    (fk_distribution, product_name, quantity, unit, note, datec)
+                                    VALUES (".$order_id.", '".$db->escape($pi->product_name)."',
+                                    ".$line_qty.", '".$db->escape($pi->unit)."',
+                                    '".$db->escape($ci->package_name)."', NOW())");
+                    }
+                } else {
+                    $db->query("INSERT INTO ".MAIN_DB_PREFIX."foodbank_distribution_lines
+                                (fk_distribution, product_name, quantity, unit, datec)
+                                VALUES (".$order_id.", '".$db->escape($ci->package_name)."',
+                                ".(float)$ci->quantity.", 'unit', NOW())");
+                }
+            }
+
+            $db->query("DELETE FROM ".MAIN_DB_PREFIX."foodbank_cart WHERE fk_subscriber = ".$bid);
+
+            $db->query("UPDATE ".MAIN_DB_PREFIX."foodbank_pending_orders
+                        SET status = 'completed'
+                        WHERE payment_reference = '".$db->escape($reference)."'");
+
+            $db->commit();
+            dol_syslog("FoodbankCRM Webhook: APP order {$ord_ref} placed for beneficiary {$bid} (ref={$reference})", LOG_INFO);
+
+            // Send receipt email
+            require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+            $res_ben = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE rowid = ".$bid);
+            $ben     = ($res_ben && $db->num_rows($res_ben) > 0) ? $db->fetch_object($res_ben) : null;
+            if ($ben) {
+                FoodbankMailer::sendPaymentReceipt($ben, $ord_ref, $total, $reference);
+            }
+
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'type' => 'app_order', 'ref' => $ord_ref]);
+
+        } catch (Exception $e) {
+            $db->rollback();
+            dol_syslog("FoodbankCRM Webhook: APP order placement failed for {$reference} — ".$e->getMessage(), LOG_ERR);
+            http_response_code(500);
+            echo json_encode(['error' => 'Order placement failed']);
+        }
+
+    // ── APP subscription ───────────────────────────────────────────────────────
+    } elseif ($type === 'subscription' && $bid > 0) {
+
+        $tier_id = isset($metadata->tier_id) ? (int)$metadata->tier_id : 0;
+        if (!$tier_id) {
+            http_response_code(200);
+            echo json_encode(['status' => 'ignored', 'reason' => 'Missing tier_id']);
+            exit;
+        }
+
+        // Idempotency check
+        $res_dup = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."foodbank_payments
+                               WHERE payment_reference = '".$db->escape($reference)."'");
+        if ($res_dup && $db->num_rows($res_dup) > 0) {
+            http_response_code(200);
+            echo json_encode(['status' => 'already_processed', 'type' => 'app_subscription']);
+            exit;
+        }
+
+        $res_tier = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers
+                                WHERE rowid = ".$tier_id." AND status = 'Active'");
+        $tier     = ($res_tier && $db->num_rows($res_tier) > 0) ? $db->fetch_object($res_tier) : null;
+
+        if (!$tier) {
+            http_response_code(200);
+            echo json_encode(['status' => 'ignored', 'reason' => 'Tier not found']);
+            exit;
+        }
+
+        $start_date = date('Y-m-d');
+        $end_date   = date('Y-m-d', strtotime('+' . (int)$tier->duration_days . ' days'));
+
+        $db->begin();
+        try {
+            $sql_act = "UPDATE ".MAIN_DB_PREFIX."foodbank_beneficiaries SET
+                        subscription_type        = '".$db->escape($tier->tier_type)."',
+                        subscription_status      = 'Active',
+                        subscription_start_date  = '".$start_date."',
+                        subscription_end_date    = '".$end_date."',
+                        subscription_fee         = ".(float)$tier->price.",
+                        max_orders_per_month     = ".($tier->max_orders_per_month !== null ? (int)$tier->max_orders_per_month : 'NULL').",
+                        can_place_orders         = ".(int)($tier->can_place_orders ?? 1).",
+                        payment_method           = 'Paystack',
+                        last_payment_date        = NOW()
+                        WHERE rowid = ".$bid;
+
+            if (!$db->query($sql_act)) throw new Exception($db->lasterror());
+
+            $sql_pay = "INSERT INTO ".MAIN_DB_PREFIX."foodbank_payments
+                        (fk_subscriber, payment_type, amount, payment_method, payment_status,
+                         payment_reference, payment_date, date_created)
+                        VALUES (
+                          ".$bid.", 'Subscription', ".(float)$amount.",
+                          'Paystack', 'Success',
+                          '".$db->escape($reference)."', NOW(), NOW()
+                        )";
+            if (!$db->query($sql_pay)) throw new Exception($db->lasterror());
+
+            $db->commit();
+            dol_syslog("FoodbankCRM Webhook: APP subscription activated for beneficiary {$bid} tier={$tier->tier_type} until {$end_date} (ref={$reference})", LOG_INFO);
+
+            // Send activation email
+            require_once DOL_DOCUMENT_ROOT.'/custom/foodbankcrm/class/foodbank_mailer.class.php';
+            $res_ben2 = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."foodbank_beneficiaries WHERE rowid = ".$bid);
+            $ben2     = ($res_ben2 && $db->num_rows($res_ben2) > 0) ? $db->fetch_object($res_ben2) : null;
+            if ($ben2) {
+                FoodbankMailer::sendSubscriptionActivated($ben2, $tier->tier_name, $end_date);
+            }
+
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'type' => 'app_subscription', 'end_date' => $end_date]);
+
+        } catch (Exception $e) {
+            $db->rollback();
+            dol_syslog("FoodbankCRM Webhook: APP subscription activation failed for {$bid} — ".$e->getMessage(), LOG_ERR);
+            http_response_code(500);
+            echo json_encode(['error' => 'Subscription activation failed']);
+        }
+
+    } else {
+        http_response_code(200);
+        echo json_encode(['status' => 'ignored', 'reason' => 'Unknown APP payment type']);
+    }
+
 // ===== UNRECOGNIZED =====
 } else {
     http_response_code(200);

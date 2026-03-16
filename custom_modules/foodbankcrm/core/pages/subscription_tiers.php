@@ -123,6 +123,11 @@ llxHeader('', 'Subscription Tiers');
 .act-btn.danger { color: #ef4444 !important; border-color: #fecaca; }
 .act-btn.danger:hover { background: #fef2f2; }
 
+/* Order access badges in table */
+.order-yes  { display: inline-flex; align-items: center; gap: 5px; background: #dcfce7; color: #15803d; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.order-no   { display: inline-flex; align-items: center; gap: 5px; background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.order-limit { font-size: 11px; color: #64748b; margin-top: 4px; }
+
 /* Info box */
 .info-box { background: #eff6ff; border-radius: var(--radius); border-left: 4px solid var(--accent); padding: 20px 24px; margin-top: 24px; }
 .info-box h3 { margin: 0 0 10px; font-size: 15px; color: #1e40af; }
@@ -175,6 +180,7 @@ llxHeader('', 'Subscription Tiers');
                 <th>Tier</th>
                 <th>Duration</th>
                 <th>Price</th>
+                <th>Order Access</th>
                 <th>Benefits</th>
                 <th>Status</th>
                 <th style="text-align:right;">Actions</th>
@@ -184,6 +190,8 @@ llxHeader('', 'Subscription Tiers');
         <?php foreach ($tiers as $obj) :
             $is_active   = (bool)$obj->is_active;
             $badge_class = $is_active ? 'badge-active' : 'badge-inactive';
+            $can_order   = (bool)(int)($obj->can_place_orders ?? 0);
+            $max_orders  = (int)($obj->max_orders_per_month ?? 0);
         ?>
             <tr>
                 <td>
@@ -192,6 +200,17 @@ llxHeader('', 'Subscription Tiers');
                 </td>
                 <td><?php echo (int)$obj->duration_months; ?> month<?php echo $obj->duration_months != 1 ? 's' : ''; ?></td>
                 <td><strong>₦<?php echo number_format($obj->price, 2); ?></strong></td>
+                <td>
+                    <?php if ($can_order) : ?>
+                        <span class="order-yes">✓ Can Order</span>
+                        <div class="order-limit">
+                            <?php echo $max_orders > 0 ? "Max {$max_orders}/month" : 'Unlimited'; ?>
+                        </div>
+                    <?php else : ?>
+                        <span class="order-no">✗ Browse Only</span>
+                        <div class="order-limit">No ordering</div>
+                    <?php endif; ?>
+                </td>
                 <td><div class="benefits-text"><?php echo dol_escape_htmltag(dol_trunc($obj->benefits, 60)); ?></div></td>
                 <td><span class="badge <?php echo $badge_class; ?>"><?php echo $is_active ? 'Active' : 'Inactive'; ?></span></td>
                 <td style="text-align:right; white-space:nowrap;">
@@ -218,11 +237,17 @@ llxHeader('', 'Subscription Tiers');
 
     <!-- Info Box -->
     <div class="info-box">
-        <h3>💡 About Subscription Tiers</h3>
+        <h3>💡 About Subscription Tiers &amp; Order Access</h3>
         <ul>
             <li><strong>Annual</strong> — Full-year membership, best value for regular beneficiaries</li>
             <li><strong>Donor</strong> — Premium tier that supports the foodbank's mission</li>
             <li><strong>Guest</strong> — Short-term or trial access for new subscribers</li>
+        </ul>
+        <p style="margin: 12px 0 6px; font-size: 13px; color: #1e40af;"><strong>Order Access</strong> controls what each plan allows:</p>
+        <ul>
+            <li><strong>Can Order</strong> — Members on this tier can browse packages and place food orders in the app</li>
+            <li><strong>Browse Only</strong> — Members can view packages but the app will block checkout until they upgrade</li>
+            <li><strong>Max orders/month</strong> — Caps how many orders a member can place each calendar month. Set to <strong>0</strong> for unlimited.</li>
         </ul>
         <p style="margin: 10px 0 0; font-size: 13px; color: #1e40af;">
             Active tiers are shown to beneficiaries during registration and renewal. Deactivated tiers remain visible to admins but cannot be selected by subscribers.

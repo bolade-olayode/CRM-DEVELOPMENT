@@ -276,6 +276,20 @@ CREATE TABLE IF NOT EXISTS llx_foodbank_rate_limit (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 17. Email Verification (OTP codes)
+-- 17b. Pending Orders (order intent saved before Paystack payment opens,
+--      consumed by the webhook if the app loses connection after payment)
+CREATE TABLE IF NOT EXISTS llx_foodbank_pending_orders (
+  rowid INT AUTO_INCREMENT PRIMARY KEY,
+  fk_beneficiary INT NOT NULL,
+  payment_reference VARCHAR(255) NOT NULL,
+  delivery_address TEXT NOT NULL,
+  notes TEXT,
+  status ENUM('pending','completed','cancelled') DEFAULT 'pending',
+  datec DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_pending_ref (payment_reference),
+  INDEX idx_pending_ben (fk_beneficiary)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS llx_foodbank_email_verification (
   email VARCHAR(255) PRIMARY KEY,
   code VARCHAR(10),

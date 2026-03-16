@@ -21,12 +21,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_POST['token']) || $_POST['token'] !== $_SESSION['newtoken']) {
         $notice = ['error', 'Security check failed. Please try again.'];
     } else {
+        // ── Handle image upload ──────────────────────────────────────────────
+        $image_url = trim($_POST['image_url'] ?? '');
+
+        if (!empty($_FILES['package_image']['name']) && $_FILES['package_image']['error'] === UPLOAD_ERR_OK) {
+            $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $finfo         = finfo_open(FILEINFO_MIME_TYPE);
+            $mime          = finfo_file($finfo, $_FILES['package_image']['tmp_name']);
+            finfo_close($finfo);
+
+            if (!in_array($mime, $allowed_types)) {
+                $notice = ['error', 'Invalid image type. Allowed: JPG, PNG, GIF, WEBP.'];
+            } elseif ($_FILES['package_image']['size'] > 2 * 1024 * 1024) {
+                $notice = ['error', 'Image must be under 2 MB.'];
+            } else {
+                $upload_dir = DOL_DOCUMENT_ROOT . '/custom/foodbankcrm/img/packages/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+                $ext       = pathinfo($_FILES['package_image']['name'], PATHINFO_EXTENSION);
+                $filename  = 'pkg_' . uniqid() . '.' . strtolower($ext);
+                $dest      = $upload_dir . $filename;
+                if (move_uploaded_file($_FILES['package_image']['tmp_name'], $dest)) {
+                    $image_url = DOL_URL_ROOT . '/custom/foodbankcrm/img/packages/' . $filename;
+                } else {
+                    $notice = ['error', 'Failed to save uploaded image.'];
+                }
+            }
+        }
+
+        if (!isset($notice[0]) || $notice[0] !== 'error') {
         $p              = new Package($db);
         $p->ref         = trim($_POST['ref'] ?? '');
         $p->name        = trim($_POST['name'] ?? '');
         $p->description = trim($_POST['description'] ?? '');
         $p->status      = in_array($_POST['status'] ?? '', ['Active','Draft','Discontinued']) ? $_POST['status'] : 'Active';
-        $p->image_url   = trim($_POST['image_url'] ?? '');
+        $p->image_url   = $image_url;
 
         $pid = $p->create($user);
 
@@ -50,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $notice = ['error', 'Error creating package: ' . $p->error];
         }
+        } // end upload-error guard
     }
 }
 
@@ -188,6 +219,34 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     padding-top: 8px;
 }
 
+/* ── Image upload widget ── */
+.img-upload-wrap { display: flex; flex-direction: column; gap: 10px; }
+.img-drop-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    border: 2px dashed #cbd5e1; border-radius: 10px; padding: 24px 16px;
+    cursor: pointer; transition: border-color .15s, background .15s; background: #f8fafc;
+}
+.img-drop-zone:hover, .img-drop-zone.drag-over {
+    border-color: var(--accent); background: var(--accent-light);
+}
+.img-drop-text { font-size: 13px; font-weight: 600; color: #475569; }
+.img-drop-hint  { font-size: 11px; color: #94a3b8; }
+.img-preview-box {
+    position: relative; border-radius: 10px; overflow: hidden;
+    border: 1px solid #e2e8f0; background: #f8fafc;
+    max-height: 180px; display: flex; align-items: center; justify-content: center;
+}
+.img-preview-box img { max-width: 100%; max-height: 180px; object-fit: contain; display: block; }
+.img-clear-btn {
+    position: absolute; top: 6px; right: 6px;
+    width: 26px; height: 26px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,.55); color: #fff; font-size: 16px; font-weight: 700;
+    cursor: pointer; line-height: 1; display: flex; align-items: center; justify-content: center;
+}
+.img-clear-btn:hover { background: rgba(0,0,0,.8); }
+.img-url-row { display: flex; align-items: center; gap: 10px; }
+.img-url-or { font-size: 12px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; }
+
 /* ── Success state ── */
 .success-state { text-align: center; padding: 48px 32px; }
 .success-state .check-icon { width: 72px; height: 72px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px; }
@@ -229,7 +288,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
     <?php else: ?>
     <!-- Form -->
-    <form method="POST" action="<?php echo basename(__FILE__); ?>" id="pkgForm">
+    <form method="POST" action="<?php echo basename(__FILE__); ?>" id="pkgForm" enctype="multipart/form-data">
         <input type="hidden" name="token" value="<?php echo newToken(); ?>">
 
         <!-- Package Details -->
@@ -258,10 +317,29 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                 </div>
 
                 <div class="form-group">
-                    <label>Image URL <span class="hint">Optional — used in mobile app display</span></label>
-                    <input type="url" name="image_url" class="form-control"
-                           placeholder="https://example.com/package-image.jpg"
-                           value="<?php echo dol_escape_htmltag($_POST['image_url'] ?? ''); ?>">
+                    <label>Package Image <span class="hint">Optional — shown in mobile app</span></label>
+                    <div class="img-upload-wrap" id="imgUploadWrap">
+                        <!-- Preview -->
+                        <div class="img-preview-box" id="imgPreviewBox" style="display:none;">
+                            <img id="imgPreview" src="" alt="Preview">
+                            <button type="button" class="img-clear-btn" onclick="clearImage()" title="Remove image">×</button>
+                        </div>
+                        <!-- Drop zone -->
+                        <label class="img-drop-zone" id="imgDropZone" for="package_image">
+                            <svg width="28" height="28" fill="none" stroke="#94a3b8" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 20M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span class="img-drop-text">Click to upload or drag &amp; drop</span>
+                            <span class="img-drop-hint">JPG, PNG, WEBP · max 2 MB</span>
+                            <input type="file" name="package_image" id="package_image" accept="image/*" style="display:none;" onchange="previewImage(this)">
+                        </label>
+                        <!-- URL fallback -->
+                        <div class="img-url-row">
+                            <span class="img-url-or">or paste a URL</span>
+                            <input type="url" name="image_url" id="imageUrlInput" class="form-control"
+                                   placeholder="https://example.com/image.jpg"
+                                   value="<?php echo dol_escape_htmltag($_POST['image_url'] ?? ''); ?>"
+                                   oninput="previewUrl(this.value)">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -302,15 +380,25 @@ textarea.form-control { resize: vertical; min-height: 80px; }
                         </tr>
                     </thead>
                     <tbody id="itemBody">
+                        <?php
+                        $saved_names  = $_POST['product_name'] ?? [''];
+                        $saved_qtys   = $_POST['quantity']     ?? [1];
+                        $saved_units  = $_POST['unit']         ?? ['kg'];
+                        $saved_prices = $_POST['unit_price']   ?? [0];
+                        foreach ($saved_names as $k => $iname):
+                        ?>
                         <tr>
-                            <td><input type="text" name="product_name[]" class="item-input" required placeholder="e.g. Rice"></td>
-                            <td><input type="number" name="quantity[]" class="item-input qty-input" value="1" min="0.01" step="0.01"></td>
-                            <td>
-                                <input type="text" name="unit[]" class="item-input" list="unit-list" value="kg" placeholder="kg, units…">
-                            </td>
-                            <td><input type="number" name="unit_price[]" class="item-input price-input" value="0" min="0" step="0.01"></td>
+                            <td><input type="text"   name="product_name[]" class="item-input" required placeholder="e.g. Rice"
+                                       value="<?php echo dol_escape_htmltag($iname); ?>"></td>
+                            <td><input type="number" name="quantity[]"     class="item-input qty-input"   min="0.01" step="0.01"
+                                       value="<?php echo dol_escape_htmltag($saved_qtys[$k] ?? 1); ?>"></td>
+                            <td><input type="text"   name="unit[]"         class="item-input" list="unit-list" placeholder="kg, units…"
+                                       value="<?php echo dol_escape_htmltag($saved_units[$k] ?? 'kg'); ?>"></td>
+                            <td><input type="number" name="unit_price[]"   class="item-input price-input" min="0"    step="0.01"
+                                       value="<?php echo dol_escape_htmltag($saved_prices[$k] ?? 0); ?>"></td>
                             <td><button type="button" class="btn-remove" onclick="removeRow(this)" title="Remove">×</button></td>
                         </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
                 <datalist id="unit-list">
@@ -400,6 +488,68 @@ document.getElementById('itemBody').addEventListener('input', function(e) {
 // Init
 updateCount();
 recalcTotal();
+
+// ── Image upload preview ──────────────────────────────────────────────────────
+function previewImage(input) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('imgPreview').src = e.target.result;
+        document.getElementById('imgPreviewBox').style.display = 'flex';
+        document.getElementById('imgDropZone').style.display = 'none';
+        // Clear manual URL since a file was chosen
+        document.getElementById('imageUrlInput').value = '';
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function previewUrl(url) {
+    if (!url) {
+        document.getElementById('imgPreviewBox').style.display = 'none';
+        document.getElementById('imgDropZone').style.display = 'flex';
+        return;
+    }
+    document.getElementById('imgPreview').src = url;
+    document.getElementById('imgPreviewBox').style.display = 'flex';
+    document.getElementById('imgDropZone').style.display = 'none';
+    // Clear file input since URL was typed
+    document.getElementById('package_image').value = '';
+}
+
+function clearImage() {
+    document.getElementById('imgPreview').src = '';
+    document.getElementById('imgPreviewBox').style.display = 'none';
+    document.getElementById('imgDropZone').style.display = 'flex';
+    document.getElementById('package_image').value = '';
+    document.getElementById('imageUrlInput').value = '';
+}
+
+// Drag-and-drop onto the drop zone
+(function() {
+    var zone = document.getElementById('imgDropZone');
+    if (!zone) return;
+    zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', function()  { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        var files = e.dataTransfer.files;
+        if (files && files[0]) {
+            var inp = document.getElementById('package_image');
+            // DataTransfer lets us assign dropped files to the input
+            var dt = new DataTransfer();
+            dt.items.add(files[0]);
+            inp.files = dt.files;
+            previewImage(inp);
+        }
+    });
+})();
+
+// If page reloads with a URL already set (validation error), show preview
+(function() {
+    var urlVal = document.getElementById('imageUrlInput').value;
+    if (urlVal) previewUrl(urlVal);
+})();
 </script>
 
 <?php llxFooter(); ?>
