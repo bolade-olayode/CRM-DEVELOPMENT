@@ -25,9 +25,12 @@ CREATE TABLE IF NOT EXISTS llx_foodbank_beneficiaries (
   subscription_start_date DATE,
   subscription_end_date DATE,
   subscription_fee DECIMAL(12,2) DEFAULT 0,
+  max_orders_per_month INT DEFAULT NULL,
+  can_place_orders TINYINT(1) NOT NULL DEFAULT 0,
   payment_method VARCHAR(50),
   last_payment_date DATETIME,
   note TEXT,
+  push_token VARCHAR(200) DEFAULT NULL,
   entity INT DEFAULT 1,
   datec DATETIME DEFAULT CURRENT_TIMESTAMP,
   tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -55,6 +58,7 @@ CREATE TABLE IF NOT EXISTS llx_foodbank_vendors (
   bank_account_number VARCHAR(50),
   payment_terms VARCHAR(255),
   status VARCHAR(50) DEFAULT 'Active',
+  push_token VARCHAR(200) DEFAULT NULL,
   entity INT DEFAULT 1,
   date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
   tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -109,6 +113,7 @@ CREATE TABLE IF NOT EXISTS llx_foodbank_packages (
   name VARCHAR(255),
   description TEXT,
   status VARCHAR(50) DEFAULT 'Active',
+  image_url VARCHAR(500) DEFAULT NULL,
   entity INT DEFAULT 1,
   datec DATETIME DEFAULT CURRENT_TIMESTAMP,
   tms TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -176,6 +181,8 @@ CREATE TABLE IF NOT EXISTS llx_foodbank_subscription_tiers (
   price DECIMAL(12,2) DEFAULT 0,
   description TEXT,
   benefits TEXT,
+  max_orders_per_month INT DEFAULT NULL,
+  can_place_orders TINYINT(1) NOT NULL DEFAULT 1,
   is_active TINYINT(1) DEFAULT 1,
   status VARCHAR(50) DEFAULT 'Active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

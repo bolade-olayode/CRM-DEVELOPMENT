@@ -14,6 +14,7 @@ require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 $error = '';
 $action = GETPOST('action', 'alpha');
 $ip_address = $_SERVER['REMOTE_ADDR'];
+$from_app = GETPOST('from_app', 'alpha') === '1' ? '1' : '';
 
 // --- 1. RATE LIMITER ---
 if ($action == 'register') {
@@ -129,7 +130,8 @@ if ($action == 'register' && empty($error)) {
                         $mail->sendfile();
 
                         // Redirect to Verify Page
-                        header("Location: verify_otp.php?email=".urlencode($email));
+                        $app_params = $from_app === '1' ? '&from_app=1&role=vendor' : '';
+                        header("Location: verify_otp.php?email=".urlencode($email).$app_params);
                         exit;
                     } else {
                         $db->rollback();
@@ -193,10 +195,18 @@ if ($action == 'register' && empty($error)) {
         <p style="color: #718096;">Join our network of trusted food suppliers.</p>
     </div>
 
-    <?php if ($error) print '<div class="error-box">'.$error.'</div>'; ?>
+    <?php if ($error): ?>
+        <div id="errorBox" class="error-box"><strong>⚠️ </strong><?php echo $error; ?></div>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                document.getElementById('errorBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        </script>
+    <?php endif; ?>
 
     <form method="POST">
         <input type="hidden" name="action" value="register">
+        <input type="hidden" name="from_app" value="<?php echo htmlspecialchars($from_app); ?>">
 
         <div class="section-header">1. Business Information</div>
         <div class="form-group">

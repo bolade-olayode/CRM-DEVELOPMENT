@@ -1,4 +1,7 @@
 <?php
+/**
+ * CREATE PACKAGE — FoodbankCRM Admin
+ */
 require_once dirname(__DIR__, 4) . '/main.inc.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/package.class.php';
 require_once dirname(__DIR__, 3) . '/foodbankcrm/class/packageitem.class.php';
@@ -10,160 +13,393 @@ if (!FoodbankPermissions::isAdmin($user)) {
 
 $langs->load("admin");
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Create Package');
 
-// --- CSS ---
-print '<style>
-    div#id-top, #id-top { display: none !important; }
-    .side-nav { top: 0 !important; height: 100vh !important; }
-    #id-right { padding-top: 30px !important; }
-    
-    .fb-container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
-    .fb-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 40px; border: 1px solid #eee; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; font-weight: 600; font-size: 13px; color: #444; margin-bottom: 5px; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-    
-    /* Item Table */
-    .item-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    .item-table th { background: #f8f9fa; text-align: left; padding: 10px; font-size: 12px; color: #666; border-bottom: 2px solid #eee; }
-    .item-table td { padding: 10px; border-bottom: 1px solid #eee; }
-    .item-input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-</style>';
-
-$notice = '';
+$notice    = '';
 $hide_form = false;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (!isset($_POST['token']) || $_POST['token'] != $_SESSION['newtoken']) {
-        $notice = '<div class="error">Security check failed.</div>';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!isset($_POST['token']) || $_POST['token'] !== $_SESSION['newtoken']) {
+        $notice = ['error', 'Security check failed. Please try again.'];
     } else {
-        $p = new Package($db);
-        $p->ref = $_POST['ref'];
-        $p->name = $_POST['name'];
-        $p->description = $_POST['description'];
-        $p->status = $_POST['status'];
-        
+        $p              = new Package($db);
+        $p->ref         = trim($_POST['ref'] ?? '');
+        $p->name        = trim($_POST['name'] ?? '');
+        $p->description = trim($_POST['description'] ?? '');
+        $p->status      = in_array($_POST['status'] ?? '', ['Active','Draft','Discontinued']) ? $_POST['status'] : 'Active';
+        $p->image_url   = trim($_POST['image_url'] ?? '');
+
         $pid = $p->create($user);
-        
+
         if ($pid > 0) {
-            // Save Items
             $count = 0;
             if (!empty($_POST['product_name'])) {
-                foreach ($_POST['product_name'] as $k => $name) {
-                    if (empty(trim($name))) continue;
-                    $item = new PackageItem($db);
-                    $item->fk_package = $pid;
-                    $item->product_name = $name;
-                    $item->quantity = $_POST['quantity'][$k];
-                    $item->unit = $_POST['unit'][$k];
-                    $item->unit_price = $_POST['unit_price'][$k];
+                foreach ($_POST['product_name'] as $k => $iname) {
+                    if (empty(trim($iname))) continue;
+                    $item               = new PackageItem($db);
+                    $item->fk_package   = $pid;
+                    $item->product_name = trim($iname);
+                    $item->quantity     = (float)($_POST['quantity'][$k] ?? 1);
+                    $item->unit         = trim($_POST['unit'][$k] ?? 'units');
+                    $item->unit_price   = (float)($_POST['unit_price'][$k] ?? 0);
                     $item->create($user);
                     $count++;
                 }
             }
-            
-            $notice = '<div class="ok" style="padding: 20px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; color: #155724; margin-bottom: 20px; text-align: center;">
-                        <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
-                        <strong>Package Created Successfully!</strong><br>
-                        Added '.$count.' items.<br><br>
-                        <a href="packages.php" class="button" style="background:#28a745; color:white; border:none; padding:10px 20px;">View Packages</a>
-                       </div>';
+            $notice    = ['success', "Package <strong>" . dol_escape_htmltag($p->name) . "</strong> created with {$count} item(s). <a href='packages.php' style='color:#15803d;text-decoration:underline;'>View all packages →</a>"];
             $hide_form = true;
         } else {
-            $notice = '<div class="error">Error: '.$p->error.'</div>';
+            $notice = ['error', 'Error creating package: ' . $p->error];
         }
     }
 }
 
-print '<div class="fb-container">';
-
-if (!$hide_form) {
-    print '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
-    print '<div><h1 style="margin: 0;">📦 New Package</h1><p style="color:#888; margin: 5px 0 0 0;">Create a food box template</p></div>';
-    print '<div><a href="packages.php" class="button" style="background:#eee; color:#333; margin-right: 10px;">Cancel</a>';
-    print '<a href="dashboard_admin.php" class="button" style="background:#333; color:#fff;">Dashboard</a></div>';
-    print '</div>';
-}
-
-print $notice;
-
-if (!$hide_form) {
-    print '<div class="fb-card">';
-    print '<form method="POST" action="'.basename(__FILE__).'">';
-    print '<input type="hidden" name="token" value="'.newToken().'">';
-
-    print '<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">';
-    print '<div class="form-group"><label>Package Name</label><input type="text" name="name" required placeholder="e.g. Family Relief Box"></div>';
-    print '<div class="form-group"><label>Reference (Optional)</label><input type="text" name="ref" placeholder="Auto-generated"></div>';
-    print '</div>';
-    
-    print '<div class="form-group"><label>Description</label><textarea name="description" rows="2" placeholder="Describe contents..."></textarea></div>';
-    print '<input type="hidden" name="status" value="Active">';
-
-    print '<h3 style="margin-top: 30px; border-bottom: 1px solid #eee; padding-bottom: 10px;">📦 Package Items</h3>';
-    
-    print '<table class="item-table" id="itemTable">';
-    print '<thead><tr><th>Product Name</th><th width="15%">Qty</th><th width="15%">Unit</th><th width="15%">Est. Price (₦)</th><th width="5%"></th></tr></thead>';
-    print '<tbody id="itemBody">';
-    // Initial Row
-    print '<tr>
-            <td><input type="text" name="product_name[]" class="item-input" required placeholder="Item name"></td>
-            <td><input type="number" name="quantity[]" class="item-input" value="1" min="0" step="0.01"></td>
-            <td><input type="text" name="unit[]" class="item-input" list="unit-list" placeholder="kg, units..." value="kg"></td>
-            <td><input type="number" name="unit_price[]" class="item-input" value="0" min="0" step="0.01"></td>
-            <td><button type="button" class="button small" style="background:#dc3545; color:white;" onclick="removeRow(this)">X</button></td>
-           </tr>';
-    print '</tbody></table>';
-    print '<datalist id="unit-list">
-            <option value="kg">
-            <option value="g">
-            <option value="units">
-            <option value="packs">
-            <option value="bags">
-            <option value="boxes">
-            <option value="cartons">
-            <option value="liters">
-            <option value="crates">
-            <option value="tonnes">
-           </datalist>';
-    
-    print '<div style="margin-top: 10px;">';
-    print '<button type="button" class="button small" style="background:#667eea; color:white;" onclick="addRow()">+ Add Another Item</button>';
-    print '</div>';
-
-    print '<div style="margin-top: 30px; text-align: center;">';
-    print '<button type="submit" class="butAction" style="padding: 12px 40px; font-size: 16px;">Create Package</button>';
-    print '</div>';
-
-    print '</form>';
-    print '</div>';
-}
-
-print '</div>'; // End Container
-
-// JS for Dynamic Rows
-print '<script>
-function addRow() {
-    var table = document.getElementById("itemBody");
-    var row = table.rows[0].cloneNode(true);
-    var inputs = row.getElementsByTagName("input");
-    for(var i=0; i<inputs.length; i++) inputs[i].value = "";
-    var selects = row.getElementsByTagName("select");
-    for(var i=0; i<selects.length; i++) selects[i].selectedIndex = 0;
-    inputs[1].value = "1"; // Default qty
-    inputs[2].value = "0"; // Default price (index 2 because select is not an input element)
-    table.appendChild(row);
-}
-function removeRow(btn) {
-    var row = btn.parentNode.parentNode;
-    if (document.getElementById("itemBody").rows.length > 1) {
-        row.parentNode.removeChild(row);
-    } else {
-        alert("You must have at least one item.");
-    }
-}
-</script>';
-
-llxFooter();
+llxHeader('', 'Create Package');
 ?>
+<style>
+:root {
+    --accent:       #4f46e5;
+    --accent-light: #e0e7ff;
+    --accent-dark:  #3730a3;
+    --green:        #10b981;
+    --surface:      #f8fafc;
+    --radius:       14px;
+    --shadow:       0 2px 8px rgba(0,0,0,.07);
+    --shadow-md:    0 6px 20px rgba(0,0,0,.10);
+    --font:         "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+#id-top { display: none !important; }
+.side-nav, .side-nav-vert { top: 0 !important; height: 100vh !important; }
+#id-right { padding-top: 0 !important; background: var(--surface) !important; min-height: 100vh; }
+.fiche { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+.cp-wrap { max-width: 900px; margin: 0 auto; padding: 32px 28px 60px; font-family: var(--font); }
+
+/* ── Header ── */
+.cp-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+.cp-header h1 { margin: 0; font-size: 24px; font-weight: 800; color: #1e293b; }
+.cp-header p  { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff !important; padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; text-decoration: none; transition: background .2s; border: none; cursor: pointer; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-ghost   { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #475569 !important; padding: 10px 18px; border-radius: 8px; font-weight: 500; font-size: 14px; text-decoration: none; border: 1px solid #e2e8f0; margin-right: 8px; transition: background .15s; }
+.btn-ghost:hover { background: #f1f5f9; }
+
+/* ── Notice ── */
+.cp-notice { padding: 14px 18px; border-radius: 10px; margin-bottom: 24px; font-size: 14px; font-weight: 500; }
+.cp-notice.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.cp-notice.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+/* ── Cards ── */
+.cp-card {
+    background: #fff; border-radius: var(--radius);
+    box-shadow: var(--shadow-md); margin-bottom: 20px; overflow: hidden;
+}
+.cp-card-header {
+    padding: 18px 24px 16px; border-bottom: 1px solid #f1f5f9;
+    display: flex; align-items: center; gap: 10px;
+}
+.cp-card-header h2 { margin: 0; font-size: 15px; font-weight: 700; color: #1e293b; }
+.cp-card-header span { font-size: 13px; color: #94a3b8; margin-left: auto; }
+.cp-card-body { padding: 24px; }
+
+/* ── Form fields ── */
+.field-grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+.field-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+@media(max-width:640px) { .field-grid-2, .field-grid-3 { grid-template-columns: 1fr; } }
+
+.form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.form-group:last-child { margin-bottom: 0; }
+.form-group label { font-size: 13px; font-weight: 600; color: #374151; }
+.form-group label .req { color: #ef4444; margin-left: 2px; }
+.form-group label .hint { font-weight: 400; color: #94a3b8; margin-left: 6px; font-size: 12px; }
+
+.form-control {
+    padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: 14px; color: #1e293b; background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+    font-family: var(--font);
+    width: 100%; box-sizing: border-box;
+}
+.form-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+textarea.form-control { resize: vertical; min-height: 80px; }
+
+.status-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.status-chip input[type=radio] { display: none; }
+.status-chip label {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 20px; border: 1.5px solid #e2e8f0;
+    font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
+    transition: all .15s;
+}
+.status-chip input[type=radio]:checked + label { border-color: currentColor; }
+.status-chip.active  input[type=radio]:checked + label { color: #15803d; background: #dcfce7; border-color: #86efac; }
+.status-chip.draft   input[type=radio]:checked + label { color: #92400e; background: #fef3c7; border-color: #fcd34d; }
+.status-chip.disc    input[type=radio]:checked + label { color: #991b1b; background: #fee2e2; border-color: #fca5a5; }
+
+/* ── Items table ── */
+.item-table { width: 100%; border-collapse: collapse; }
+.item-table thead th {
+    text-align: left; padding: 10px 12px;
+    background: #f8fafc; color: #64748b; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .5px; font-weight: 600;
+    border-bottom: 2px solid #e2e8f0;
+}
+.item-table tbody td { padding: 8px 8px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.item-table tbody tr:last-child td { border-bottom: none; }
+.item-table tbody tr:hover { background: #fafbff; }
+
+.item-input {
+    padding: 9px 11px; border: 1px solid #e2e8f0; border-radius: 7px;
+    font-size: 13px; color: #1e293b; width: 100%; box-sizing: border-box;
+    font-family: var(--font);
+}
+.item-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+
+.btn-remove {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 6px;
+    background: #fef2f2; border: 1px solid #fecaca;
+    color: #ef4444; cursor: pointer; font-size: 16px; font-weight: 700;
+    transition: background .15s;
+}
+.btn-remove:hover { background: #fee2e2; }
+
+.btn-add-row {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 8px;
+    background: var(--accent-light); color: var(--accent-dark) !important;
+    font-size: 13px; font-weight: 600; border: none; cursor: pointer;
+    transition: background .15s;
+}
+.btn-add-row:hover { background: #c7d2fe; }
+
+/* ── Total bar ── */
+.total-bar {
+    display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+    padding: 14px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+.total-bar .total-label { font-size: 13px; color: #64748b; font-weight: 500; }
+.total-bar .total-val   { font-size: 18px; font-weight: 800; color: #1e293b; min-width: 120px; text-align: right; }
+
+/* ── Submit bar ── */
+.submit-bar {
+    display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+    padding-top: 8px;
+}
+
+/* ── Success state ── */
+.success-state { text-align: center; padding: 48px 32px; }
+.success-state .check-icon { width: 72px; height: 72px; border-radius: 50%; background: #dcfce7; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 20px; }
+.success-state h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #1e293b; }
+.success-state p  { margin: 0 0 24px; color: #64748b; font-size: 14px; }
+</style>
+
+<div class="cp-wrap">
+
+    <!-- Header -->
+    <div class="cp-header">
+        <div>
+            <h1>📦 New Package</h1>
+            <p>Create a food box template with items and pricing</p>
+        </div>
+        <div>
+            <a href="packages.php" class="btn-ghost">← All Packages</a>
+            <a href="dashboard_admin.php" class="btn-ghost">Dashboard</a>
+        </div>
+    </div>
+
+    <?php if ($notice): ?>
+    <div class="cp-notice <?php echo $notice[0]; ?>"><?php echo $notice[1]; ?></div>
+    <?php endif; ?>
+
+    <?php if ($hide_form): ?>
+    <!-- Success state -->
+    <div class="cp-card">
+        <div class="success-state">
+            <div class="check-icon">✓</div>
+            <h2>Package Created!</h2>
+            <p>Your package has been saved and is ready to use.</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <a href="create_package.php" class="btn-ghost">+ Create Another</a>
+                <a href="packages.php" class="btn-primary">View All Packages</a>
+            </div>
+        </div>
+    </div>
+
+    <?php else: ?>
+    <!-- Form -->
+    <form method="POST" action="<?php echo basename(__FILE__); ?>" id="pkgForm">
+        <input type="hidden" name="token" value="<?php echo newToken(); ?>">
+
+        <!-- Package Details -->
+        <div class="cp-card">
+            <div class="cp-card-header">
+                <h2>Package Details</h2>
+            </div>
+            <div class="cp-card-body">
+                <div class="field-grid-2">
+                    <div class="form-group">
+                        <label>Package Name <span class="req">*</span></label>
+                        <input type="text" name="name" class="form-control" required
+                               placeholder="e.g. Family Relief Box" value="<?php echo dol_escape_htmltag($_POST['name'] ?? ''); ?>">
+                    </div>
+                    <div class="form-group">
+                        <label>Reference <span class="hint">Optional — auto-generated if empty</span></label>
+                        <input type="text" name="ref" class="form-control"
+                               placeholder="PKG2025-0001" value="<?php echo dol_escape_htmltag($_POST['ref'] ?? ''); ?>">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-control" rows="2"
+                              placeholder="Brief description of what this package contains..."><?php echo dol_escape_htmltag($_POST['description'] ?? ''); ?></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Image URL <span class="hint">Optional — used in mobile app display</span></label>
+                    <input type="url" name="image_url" class="form-control"
+                           placeholder="https://example.com/package-image.jpg"
+                           value="<?php echo dol_escape_htmltag($_POST['image_url'] ?? ''); ?>">
+                </div>
+
+                <div class="form-group">
+                    <label>Status</label>
+                    <div class="status-chips">
+                        <div class="status-chip active">
+                            <input type="radio" name="status" id="s_active" value="Active" checked>
+                            <label for="s_active">✅ Active</label>
+                        </div>
+                        <div class="status-chip draft">
+                            <input type="radio" name="status" id="s_draft" value="Draft">
+                            <label for="s_draft">📝 Draft</label>
+                        </div>
+                        <div class="status-chip disc">
+                            <input type="radio" name="status" id="s_disc" value="Discontinued">
+                            <label for="s_disc">🚫 Discontinued</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Package Items -->
+        <div class="cp-card">
+            <div class="cp-card-header">
+                <h2>Package Items</h2>
+                <span id="itemCount">1 item</span>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="item-table" id="itemTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;">Product / Item Name</th>
+                            <th style="width:100px;">Qty</th>
+                            <th style="width:120px;">Unit</th>
+                            <th style="width:140px;">Est. Price (₦)</th>
+                            <th style="width:40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemBody">
+                        <tr>
+                            <td><input type="text" name="product_name[]" class="item-input" required placeholder="e.g. Rice"></td>
+                            <td><input type="number" name="quantity[]" class="item-input qty-input" value="1" min="0.01" step="0.01"></td>
+                            <td>
+                                <input type="text" name="unit[]" class="item-input" list="unit-list" value="kg" placeholder="kg, units…">
+                            </td>
+                            <td><input type="number" name="unit_price[]" class="item-input price-input" value="0" min="0" step="0.01"></td>
+                            <td><button type="button" class="btn-remove" onclick="removeRow(this)" title="Remove">×</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <datalist id="unit-list">
+                    <option value="kg"><option value="g"><option value="units">
+                    <option value="packs"><option value="bags"><option value="boxes">
+                    <option value="cartons"><option value="litres"><option value="crates">
+                    <option value="loaves"><option value="dozens"><option value="tonnes">
+                </datalist>
+            </div>
+
+            <div style="padding:16px 20px; border-top:1px solid #f1f5f9;">
+                <button type="button" class="btn-add-row" onclick="addRow()">+ Add Item</button>
+            </div>
+
+            <div class="total-bar">
+                <span class="total-label">Estimated Package Total</span>
+                <span class="total-val" id="grandTotal">₦0.00</span>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="submit-bar">
+            <a href="packages.php" class="btn-ghost">Cancel</a>
+            <button type="submit" class="btn-primary" style="padding:12px 32px;font-size:15px;">
+                Create Package
+            </button>
+        </div>
+
+    </form>
+    <?php endif; ?>
+
+</div>
+
+<script>
+// ── Row management ────────────────────────────────────────────────────────────
+function addRow() {
+    var tbody = document.getElementById('itemBody');
+    var first = tbody.rows[0];
+    var row   = first.cloneNode(true);
+    row.querySelectorAll('input').forEach(function(inp) {
+        if (inp.name.startsWith('quantity')) inp.value = '1';
+        else if (inp.name.startsWith('unit_price')) inp.value = '0';
+        else if (inp.name.startsWith('unit')) inp.value = 'kg';
+        else inp.value = '';
+        inp.classList.remove('is-invalid');
+    });
+    tbody.appendChild(row);
+    row.querySelector('input').focus();
+    updateCount();
+    recalcTotal();
+}
+
+function removeRow(btn) {
+    var tbody = document.getElementById('itemBody');
+    if (tbody.rows.length <= 1) {
+        alert('A package must have at least one item.');
+        return;
+    }
+    btn.closest('tr').remove();
+    updateCount();
+    recalcTotal();
+}
+
+function updateCount() {
+    var n = document.getElementById('itemBody').rows.length;
+    document.getElementById('itemCount').textContent = n + ' item' + (n !== 1 ? 's' : '');
+}
+
+// ── Running total ─────────────────────────────────────────────────────────────
+function recalcTotal() {
+    var total = 0;
+    document.querySelectorAll('#itemBody tr').forEach(function(row) {
+        var qty   = parseFloat(row.querySelector('.qty-input')?.value   || 0);
+        var price = parseFloat(row.querySelector('.price-input')?.value || 0);
+        total += qty * price;
+    });
+    document.getElementById('grandTotal').textContent = '₦' + total.toLocaleString('en-NG', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// Attach live listeners on existing + future rows
+document.getElementById('itemBody').addEventListener('input', function(e) {
+    if (e.target.classList.contains('qty-input') || e.target.classList.contains('price-input')) {
+        recalcTotal();
+    }
+});
+
+// Init
+updateCount();
+recalcTotal();
+</script>
+
+<?php llxFooter(); ?>

@@ -14,6 +14,8 @@ require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 
 $email = GETPOST('email', 'alpha');
 $action = GETPOST('action', 'alpha');
+$from_app = GETPOST('from_app', 'alpha') === '1' ? '1' : '';
+$role = in_array(GETPOST('role', 'alpha'), ['beneficiary', 'vendor']) ? GETPOST('role', 'alpha') : 'beneficiary';
 $error = '';
 $success_msg = '';
 
@@ -133,10 +135,15 @@ if ($action == 'verify') {
                         FoodbankMailer::sendWelcomeEmail($ben_w->firstname, $ben_w->lastname, $email, $login);
                     }
 
-                    // Account is now active. Redirect to Dolibarr's login page.
-                    // backtopage routes the user to their correct dashboard after login.
-                    $backtopage = DOL_URL_ROOT . '/custom/foodbankcrm/core/pages/redirect_dashboard.php';
-                    header("Location: " . DOL_URL_ROOT . "/index.php?username=" . urlencode($login) . "&backtopage=" . urlencode($backtopage));
+                    // Account is now active.
+                    if ($from_app === '1') {
+                        // Deep-link back to the mobile app
+                        header("Location: app://registered?email=" . urlencode($email) . "&role=" . urlencode($role));
+                    } else {
+                        // Redirect to Dolibarr's login page; backtopage routes to correct dashboard.
+                        $backtopage = DOL_URL_ROOT . '/custom/foodbankcrm/core/pages/redirect_dashboard.php';
+                        header("Location: " . DOL_URL_ROOT . "/index.php?username=" . urlencode($login) . "&backtopage=" . urlencode($backtopage));
+                    }
                     exit;
 
                 } else {
@@ -184,12 +191,16 @@ if ($action == 'verify') {
         <form method="POST">
             <input type="hidden" name="action" value="verify">
             <input type="hidden" name="email" value="<?php echo htmlspecialchars($email); ?>">
+            <input type="hidden" name="from_app" value="<?php echo htmlspecialchars($from_app); ?>">
+            <input type="hidden" name="role" value="<?php echo htmlspecialchars($role); ?>">
             <input type="text" name="code" placeholder="000000" maxlength="6" required autofocus>
             <button type="submit">Verify & Continue</button>
         </form>
         <form method="POST">
             <input type="hidden" name="action" value="resend">
             <input type="hidden" name="email" value="<?php echo htmlspecialchars($email); ?>">
+            <input type="hidden" name="from_app" value="<?php echo htmlspecialchars($from_app); ?>">
+            <input type="hidden" name="role" value="<?php echo htmlspecialchars($role); ?>">
             <button type="submit" class="resend-link">Code expired? Request a new one</button>
         </form>
     </div>

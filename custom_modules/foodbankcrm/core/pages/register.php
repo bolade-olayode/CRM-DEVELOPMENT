@@ -14,6 +14,7 @@ require_once DOL_DOCUMENT_ROOT . '/core/class/CMailFile.class.php';
 $error = '';
 $action = GETPOST('action', 'alpha');
 $ip_address = $_SERVER['REMOTE_ADDR'];
+$from_app = GETPOST('from_app', 'alpha') === '1' ? '1' : '';
 
 // --- 1. RATE LIMITER ---
 if ($action == 'register') {
@@ -117,7 +118,8 @@ if ($action == 'register' && empty($error)) {
                         // Notify the admin that a new subscriber just registered
                         FoodbankMailer::sendAdminNewRegistration('subscriber', $fname.' '.$lname, $email);
 
-                        header("Location: verify_otp.php?email=".urlencode($email));
+                        $app_params = $from_app === '1' ? '&from_app=1&role=beneficiary' : '';
+                        header("Location: verify_otp.php?email=".urlencode($email).$app_params);
                         exit;
                     } else {
                         $db->rollback();
@@ -201,18 +203,6 @@ if ($action == 'register' && empty($error)) {
         <p>Choose a plan to get started. You'll create your account in the next step.</p>
     </div>
 
-    <?php if ($error): ?>
-        <div class="error-box">
-            <strong>⚠️ Registration Failed</strong><br>
-            <?php echo $error; ?>
-        </div>
-        <script>
-            document.addEventListener("DOMContentLoaded", function() {
-                document.getElementById('registrationSection').classList.add('active');
-                document.getElementById('registrationSection').scrollIntoView({ block: 'center' });
-            });
-        </script>
-    <?php endif; ?>
 
     <div class="pricing-grid">
         <?php
@@ -233,8 +223,20 @@ if ($action == 'register' && empty($error)) {
 
     <div id="registrationSection" class="reg-form <?php echo ($error || GETPOST('selected_plan')) ? 'active' : ''; ?>">
         <div class="form-title">Create Your Account</div>
+        <?php if ($error): ?>
+            <div id="errorBox" class="error-box">
+                <strong>⚠️ Registration Failed</strong><br>
+                <?php echo $error; ?>
+            </div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    document.getElementById('errorBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+            </script>
+        <?php endif; ?>
         <form method="POST">
             <input type="hidden" name="action" value="register">
+            <input type="hidden" name="from_app" value="<?php echo htmlspecialchars($from_app); ?>">
             <input type="hidden" id="selectedPlanInput" name="selected_plan" value="<?php echo dol_escape_htmltag(GETPOST('selected_plan')); ?>" required>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">

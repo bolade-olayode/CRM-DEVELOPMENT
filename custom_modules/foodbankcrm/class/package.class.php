@@ -12,6 +12,7 @@ class Package extends CommonObject
     public $name;
     public $description;
     public $status;
+    public $image_url;
     public $date_creation;
     public $entity;
 
@@ -31,12 +32,13 @@ class Package extends CommonObject
         $this->db->begin();
 
         $sql = "INSERT INTO " . MAIN_DB_PREFIX . $this->table_element . " (";
-        $sql .= "ref, name, description, status, entity, datec";
+        $sql .= "ref, name, description, status, image_url, entity, datec";
         $sql .= ") VALUES (";
         $sql .= "'" . $this->db->escape($this->ref) . "',";
         $sql .= "'" . $this->db->escape($this->name) . "',";
         $sql .= "'" . $this->db->escape($this->description) . "',";
         $sql .= "'" . $this->db->escape($this->status) . "',";
+        $sql .= "'" . $this->db->escape($this->image_url ?? '') . "',";
         $sql .= (int)$this->entity . ",";
         $sql .= "NOW()";
         $sql .= ")";
@@ -62,6 +64,7 @@ class Package extends CommonObject
             $this->name = $obj->name;
             $this->description = $obj->description;
             $this->status = $obj->status;
+            $this->image_url = $obj->image_url ?? '';
             $this->date_creation = $obj->datec;
             return 1;
         }
@@ -74,7 +77,8 @@ class Package extends CommonObject
         $sql = "UPDATE " . MAIN_DB_PREFIX . $this->table_element . " SET ";
         $sql .= "name='" . $this->db->escape($this->name) . "',";
         $sql .= "description='" . $this->db->escape($this->description) . "',";
-        $sql .= "status='" . $this->db->escape($this->status) . "'";
+        $sql .= "status='" . $this->db->escape($this->status) . "',";
+        $sql .= "image_url='" . $this->db->escape($this->image_url ?? '') . "'";
         $sql .= " WHERE rowid=" . (int)$this->id;
 
         if ($this->db->query($sql)) {
