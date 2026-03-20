@@ -128,8 +128,8 @@ class FoodbankMailer
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
       <!-- HEADER -->
       <tr><td style="background:linear-gradient(135deg,' . $d . ',' . $p . ');border-radius:16px 16px 0 0;padding:32px 40px;text-align:center">
-        <div style="font-size:40px;margin-bottom:8px">&#127814;</div>
-        <div style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px">FoodbankCRM</div>
+        <div style="margin-bottom:12px"><img src="' . DOL_URL_ROOT . '/custom/foodbankcrm/img/logo-white.png" alt="Foodbank CRM" height="48" style="height:48px;display:block;margin:0 auto"></div>
+        <div style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px">Foodbank CRM</div>
         <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-top:6px">' . htmlspecialchars($title) . '</div>
       </td></tr>
       <!-- BODY -->

@@ -84,7 +84,8 @@ $hour       = (int)date('H');
 $greeting   = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Admin Dashboard');
+$_favicon_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">';
+llxHeader($_favicon_head, 'Admin Dashboard');
 ?>
 <style>
 :root {
@@ -264,19 +265,71 @@ llxHeader('', 'Admin Dashboard');
 .db-attention-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 @media(max-width:900px) { .db-attention-grid { grid-template-columns:1fr; } }
 
-/* Responsive */
+/* ── Responsive ─────────────────────────────────────────────────────── */
 @media(max-width:768px) {
     .db-hero { padding:22px 16px 84px !important; }
     .db-hero-inner { flex-direction:column; gap:12px; }
     .db-hero-right { align-items:flex-start; flex-direction:row; flex-wrap:wrap; gap:8px; }
     .db-hero-date { text-align:left; }
-    .db-stats-outer, .db-tab-shell { padding:0 14px !important; }
-    .db-table th, .db-table td { padding:9px 12px; font-size:12px; }
-    .db-actions-grid { grid-template-columns:repeat(2,1fr); }
+    .db-stats-outer, .db-tab-shell { padding:0 12px !important; }
+    .db-stats-outer { margin-top:-52px; }
+
+    /* Tables: horizontal scroll on mobile */
+    .db-card { overflow-x:auto; }
+    .db-table { min-width:520px; }
+    .db-table th, .db-table td { padding:9px 12px; font-size:12px; white-space:nowrap; }
+
+    /* Quick actions: 2 columns on tablet */
+    .db-actions-grid { grid-template-columns:repeat(2,1fr); padding:12px; gap:10px; }
+    .db-action { padding:16px 10px; }
+
+    /* Tab bar — smaller tabs */
+    .db-tab { padding:8px 14px; font-size:12px; }
+
+    /* Cards */
+    .db-card-head { padding:12px 14px; }
+    .db-card-head h3 { font-size:13px; }
+    .db-card-foot { padding:10px 14px; }
 }
+
+@media(max-width:600px) {
+    /* Stats: 2 col, compact */
+    .db-stats-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
+    .db-stat { padding:14px; }
+    .db-stat-icon { width:32px; height:32px; font-size:16px; margin-bottom:8px; }
+
+    /* Actions: 3 per row on small phones */
+    .db-actions-grid { grid-template-columns:repeat(3,1fr); padding:10px; gap:8px; }
+    .db-action { padding:14px 8px; }
+    .db-action-ico { font-size:22px; margin-bottom:6px; }
+    .db-action-ttl { font-size:11px; }
+    .db-action-dsc { display:none; } /* hide description on tiny screens */
+
+    /* System summary rows */
+    .db-card > div[style*="padding:4px"] a { padding:10px 14px; }
+}
+
 @media(max-width:480px) {
-    .db-hero h1 { font-size:20px; }
+    .db-hero h1 { font-size:19px; }
+    .db-hero p  { font-size:12px; }
+    .db-hero img { height:28px !important; }
     .db-stat-val { font-size:20px; }
+    .db-stat-lbl { font-size:9px; }
+    .db-stat-sub { display:none; } /* hide sub-label on very small screens */
+
+    /* Hide less critical table columns on phone */
+    /* Distributions: hide Date */
+    #panel-distributions .db-table th:first-child,
+    #panel-distributions .db-table td:first-child { display:none; }
+    /* Subscribers: hide Registered date */
+    #panel-subscribers .db-table th:nth-child(5),
+    #panel-subscribers .db-table td:nth-child(5) { display:none; }
+    /* Inventory: hide Date */
+    #panel-attention .db-table th:first-child,
+    #panel-attention .db-table td:first-child { display:none; }
+
+    .db-tab { padding:7px 10px; font-size:11px; gap:4px; }
+    .db-tab-badge { width:15px; height:15px; font-size:9px; }
 }
 </style>
 
@@ -287,7 +340,8 @@ llxHeader('', 'Admin Dashboard');
         <div class="db-hero-inner">
             <div>
                 <h1><?php echo $greeting.', '.dol_escape_htmltag($admin_name); ?> 👋</h1>
-                <p>FoodbankCRM — Admin Control Room</p>
+                <img src="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/img/logo-white.png" alt="Foodbank CRM" style="height:36px;margin-bottom:8px;display:block">
+                <p>Admin Control Room</p>
             </div>
             <div class="db-hero-right">
                 <a href="<?php echo DOL_URL_ROOT; ?>/user/logout.php" class="db-logout">🚪 Logout</a>

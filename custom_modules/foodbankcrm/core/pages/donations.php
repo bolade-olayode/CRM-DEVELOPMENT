@@ -173,6 +173,7 @@ $available_total = $total_qty - $total_alloc;
                 <option value="Pending"  <?php if ($filter_status=='Pending')  echo 'selected'; ?>>⏳ Pending</option>
                 <option value="Received" <?php if ($filter_status=='Received') echo 'selected'; ?>>✅ Received</option>
                 <option value="Allocated"<?php if ($filter_status=='Allocated')echo 'selected'; ?>>📦 Allocated</option>
+                <option value="Rejected" <?php if ($filter_status=='Rejected') echo 'selected'; ?>>✕ Rejected</option>
             </select>
         </div>
         <div>
@@ -240,6 +241,7 @@ $available_total = $total_qty - $total_alloc;
                                 <option value="Pending"  <?php if ($row->status=='Pending')  echo 'selected'; ?>>⏳ Pending</option>
                                 <option value="Received" <?php if ($row->status=='Received') echo 'selected'; ?>>✅ Received</option>
                                 <option value="Allocated"<?php if ($row->status=='Allocated')echo 'selected'; ?>>📦 Allocated</option>
+                                <option value="Rejected" <?php if ($row->status=='Rejected') echo 'selected'; ?>>✕ Rejected</option>
                             </select>
                         </form>
                     </td>

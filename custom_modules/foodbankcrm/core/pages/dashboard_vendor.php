@@ -29,7 +29,7 @@ $res = $db->query($sql);
 
 if (!$res || $db->num_rows($res) == 0) {
     $_SESSION["mainmenu"] = "foodbankcrm";
-    llxHeader('', 'Vendor Dashboard');
+    llxHeader('<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">', 'Vendor Dashboard');
     print '<div class="error">Vendor profile not found. Please contact administrator.</div>';
     llxFooter();
     exit;
@@ -40,7 +40,7 @@ $vendor_id     = $vendor->rowid;
 $vendor_status = $vendor->status;
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Vendor Dashboard');
+llxHeader('<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">', 'Vendor Dashboard');
 ?>
 <style>
     :root {
@@ -330,7 +330,7 @@ $stats = ($res_stats) ? $db->fetch_object($res_stats) : new stdClass();
 
 // --- STICKY TOP NAV ---
 print '<div class="fb-topnav">';
-print '<a href="dashboard_vendor.php" class="fb-topnav-brand">🏭 Vendor Portal</a>';
+print '<a href="dashboard_vendor.php" class="fb-topnav-brand"><img src="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/logo-white.png" alt="Foodbank CRM" style="height:32px;display:block"></a>';
 print '<div class="fb-topnav-links">';
 print '<a href="my_donations.php"   class="fb-topnav-link">Supply History</a>';
 print '<a href="vendor_reports.php" class="fb-topnav-link">Performance</a>';

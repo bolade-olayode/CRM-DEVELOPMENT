@@ -50,7 +50,7 @@ $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good
 $sub_name = trim($sub->firstname.' '.$sub->lastname) ?: $user->login;
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'My Dashboard');
+llxHeader('<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">', 'My Dashboard');
 ?>
 <link rel="stylesheet" href="<?php echo DOL_URL_ROOT; ?>/custom/foodbankcrm/css/responsive.css">
 <style>
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <?php
 // ── TOPNAV ──────────────────────────────────────────────────────────────────
 print '<nav class="fb-nav">';
-print '<a href="dashboard_beneficiary.php" class="fb-nav-brand">🥦 FoodbankCRM</a>';
+print '<a href="dashboard_beneficiary.php" class="fb-nav-brand"><img src="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/logo-white.png" alt="Foodbank CRM" style="height:32px;display:block"></a>';
 print '<div class="fb-nav-links">';
 print '<a href="product_catalog.php" class="fb-nav-link">Packages</a>';
 print '<a href="view_cart.php"       class="fb-nav-link">My Cart</a>';
