@@ -1,0 +1,10 @@
+# =============================================================================
+# Root .htaccess — xdigitalfoodbank.com (public_html/)
+# Upload this file to public_html/ and rename it to .htaccess
+# If a .htaccess already exists there, just add the ErrorDocument lines to it.
+# =============================================================================
+
+# Custom error pages — site-wide
+ErrorDocument 404 /htdocs/custom/foodbankcrm/core/pages/404.php
+ErrorDocument 403 /htdocs/custom/foodbankcrm/core/pages/404.php
+ErrorDocument 500 /htdocs/custom/foodbankcrm/core/pages/404.php

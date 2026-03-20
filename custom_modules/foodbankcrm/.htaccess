@@ -119,7 +119,15 @@
 
 
 # -----------------------------------------------------------------------------
-# SECTION 3: Protect sensitive files from direct browser access
+# SECTION 3: Custom Error Pages
+# Redirect 404 and 403 errors to our branded error page.
+# -----------------------------------------------------------------------------
+ErrorDocument 404 /htdocs/custom/foodbankcrm/core/pages/404.php
+ErrorDocument 403 /htdocs/custom/foodbankcrm/core/pages/404.php
+
+
+# -----------------------------------------------------------------------------
+# SECTION 4: Protect sensitive files from direct browser access
 # These files should only be loaded by PHP, never accessed directly.
 # -----------------------------------------------------------------------------
 <FilesMatch "\.(sql|log|md|gitignore|env)$">
