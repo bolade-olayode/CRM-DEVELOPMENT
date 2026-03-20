@@ -84,8 +84,9 @@ $hour       = (int)date('H');
 $greeting   = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-$_favicon_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">';
-llxHeader($_favicon_head, 'Admin Dashboard');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Admin Dashboard');
 ?>
 <style>
 :root {

@@ -12,7 +12,9 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Reports');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Reports');
 
 print '<div style="text-align: center; padding: 80px 20px;">';
 print '<div style="font-size: 64px; margin-bottom: 20px;">📊</div>';

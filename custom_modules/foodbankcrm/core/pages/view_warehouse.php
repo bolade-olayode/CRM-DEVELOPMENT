@@ -67,7 +67,9 @@ $fill_pct   = min(100, round(($total_units / $capacity) * 100));
 $fill_color = $fill_pct >= 90 ? '#ef4444' : ($fill_pct >= 70 ? '#f59e0b' : '#4f46e5');
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Warehouse: '.dol_escape_htmltag($wh->label));
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Warehouse: '.dol_escape_htmltag($wh->label));
 ?>
 <style>
 :root {

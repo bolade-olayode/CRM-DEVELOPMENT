@@ -53,7 +53,9 @@ $back_link = $user_is_admin ? 'donations.php' : 'my_donations.php';
 $available = $donation->quantity - $donation->quantity_allocated;
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Inventory Log Details');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Inventory Log Details');
 ?>
 <style>
 :root {

@@ -9,7 +9,9 @@ if (!FoodbankPermissions::isAdmin($user)) {
 
 $langs->load("admin");
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Delete Shipment');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Delete Shipment');
 
 print '<style>div#id-top, #id-top { display: none !important; } .side-nav { top: 0 !important; height: 100vh !important; } #id-right { padding-top: 50px !important; } .fb-container { max-width: 600px; margin: 0 auto; text-align: center; } .warning-card { background: #fff; border-radius: 12px; padding: 40px; border-top: 6px solid #dc3545; box-shadow: 0 10px 25px rgba(0,0,0,0.1); } .button-danger { background: #dc3545; color: white; padding: 12px 30px; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; } .button-cancel { background: #eee; color: #333; padding: 12px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; }</style>';
 

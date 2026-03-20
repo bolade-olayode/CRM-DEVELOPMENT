@@ -41,7 +41,9 @@ $sql .= " GROUP BY d.rowid ORDER BY d.datec DESC";
 $res = $db->query($sql);
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Distributions');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Distributions');
 ?>
 <style>
 :root {

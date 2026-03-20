@@ -65,7 +65,9 @@ $res = $db->query("SELECT tier_type, tier_name, price FROM ".MAIN_DB_PREFIX."foo
 if ($res) while ($t = $db->fetch_object($res)) $tiers[] = $t;
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Edit Subscriber');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Edit Subscriber');
 ?>
 <style>
 :root {

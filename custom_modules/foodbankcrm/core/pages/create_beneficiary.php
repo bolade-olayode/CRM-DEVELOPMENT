@@ -122,7 +122,9 @@ $res = $db->query("SELECT * FROM ".MAIN_DB_PREFIX."foodbank_subscription_tiers W
 if ($res) while ($obj = $db->fetch_object($res)) $subscription_tiers[] = $obj;
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Create Subscriber');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Create Subscriber');
 ?>
 <style>
 :root {

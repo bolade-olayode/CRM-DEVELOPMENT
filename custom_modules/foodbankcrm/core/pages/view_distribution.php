@@ -10,7 +10,9 @@ if (!FoodbankPermissions::isAdmin($user)) {
 
 $langs->load("admin");
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Shipment Details');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Shipment Details');
 
 if (!isset($_GET['id'])) { header("Location: distributions.php"); exit; }
 $id = (int)$_GET['id'];

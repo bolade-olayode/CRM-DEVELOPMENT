@@ -34,6 +34,9 @@ if (!$res_ben || $db->num_rows($res_ben) == 0) {
 $beneficiary = $db->fetch_object($res_ben);
 $subscriber_id = (int)$beneficiary->rowid;
 
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+
 // Get order
 $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distributions
         WHERE rowid = ".(int)$order_id."
@@ -41,7 +44,7 @@ $sql = "SELECT * FROM ".MAIN_DB_PREFIX."foodbank_distributions
 $res = $db->query($sql);
 if (!$res || $db->num_rows($res) == 0) {
     $_SESSION["mainmenu"] = "foodbankcrm";
-    llxHeader('', 'Order Not Found');
+    llxHeader($_fb_admin_head, 'Order Not Found');
     echo '<style>#id-left { display:none!important; } #id-right { margin-left:0!important; width:100%!important; } </style>';
     echo '<div style="padding:40px; text-align:center; font-family:Segoe UI,sans-serif;">';
     echo '<p style="color:#94a3b8; font-size:15px;">Order not found or you do not have permission to view it.</p>';
@@ -74,7 +77,7 @@ $color = $status_colors[$order->status] ?? '#94a3b8';
 $icon  = $status_icons[$order->status]  ?? '?';
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Order Details');
+llxHeader($_fb_admin_head, 'Order Details');
 ?>
 <style>
 :root {

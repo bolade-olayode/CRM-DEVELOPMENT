@@ -10,7 +10,9 @@ if (!FoodbankPermissions::isAdmin($user)) {
 }
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Delete Subscription Tier');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Delete Subscription Tier');
 
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     print '<div class="error">Tier ID is missing.</div>';

@@ -44,7 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 $_SESSION["mainmenu"] = "foodbankcrm";
-llxHeader('', 'Subscription Tiers');
+$_fb_admin_head = '<link rel="icon" type="image/png" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/img/favicon.png">'
+              . '<link rel="stylesheet" href="'.DOL_URL_ROOT.'/custom/foodbankcrm/css/admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Subscription Tiers');
 
 print '<div class="fiche">';
 print '<h1>💳 Manage Subscription Tiers</h1>';

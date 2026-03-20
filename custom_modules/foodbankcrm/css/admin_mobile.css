@@ -1,0 +1,234 @@
+/* ── FoodbankCRM Admin — Mobile Responsive Styles ─────────────────────────
+   Injected globally into all admin pages via llxHeader().
+   Targets shared class names used across all admin pages.
+───────────────────────────────────────────────────────────────────────── */
+
+/* ── Wrapper ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .fb-wrap {
+        padding: 16px 12px !important;
+    }
+
+    /* ── Page header: stack title + actions vertically ─────────────────── */
+    .fb-page-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+        padding: 16px !important;
+        flex-wrap: wrap !important;
+    }
+    .fb-page-header > *:last-child {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .fb-page-header .btn-primary,
+    .fb-page-header .btn-ghost {
+        flex: 1 1 auto;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* ── Stats strip: 2 columns on tablet ──────────────────────────────── */
+    .stats-strip {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        padding: 14px !important;
+    }
+    .stat-tile {
+        padding: 14px !important;
+    }
+    .stat-tile .stat-val { font-size: 22px !important; }
+
+    /* ── Tables: horizontal scroll instead of overflow/clip ────────────── */
+    .fb-card {
+        overflow-x: auto;
+    }
+    .fb-table {
+        min-width: 520px;
+    }
+    .fb-table th {
+        padding: 9px 12px !important;
+        font-size: 11px !important;
+        white-space: nowrap;
+    }
+    .fb-table td {
+        padding: 9px 12px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+
+    /* clean-table (view_distribution) */
+    .clean-table {
+        min-width: 400px;
+        font-size: 13px !important;
+    }
+
+    /* ── Filter bar: stack inputs vertically ────────────────────────────── */
+    .filter-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding: 12px 16px !important;
+    }
+    .filter-bar input,
+    .filter-bar select {
+        width: 100% !important;
+        min-width: unset !important;
+    }
+    .btn-filter,
+    .btn-clear {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    /* ── Search bar ─────────────────────────────────────────────────────── */
+    .search-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+    .search-bar input,
+    .search-bar select {
+        width: 100% !important;
+    }
+
+    /* ── 2-column detail grids → single column ──────────────────────────── */
+    .profile-grid,
+    .detail-grid,
+    .info-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* ── Form grids → single column ─────────────────────────────────────── */
+    .form-grid,
+    .form-grid-3 {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+
+    /* ── Meta strip: tighten spacing ────────────────────────────────────── */
+    .meta-strip {
+        gap: 8px 16px !important;
+        flex-wrap: wrap !important;
+    }
+
+    /* ── Package grid: adjust min tile width ────────────────────────────── */
+    .pkg-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+        padding: 14px !important;
+        gap: 14px !important;
+    }
+
+    /* ── Data rows in detail cards ──────────────────────────────────────── */
+    .data-row {
+        flex-wrap: wrap !important;
+        gap: 2px !important;
+        padding: 10px 16px !important;
+    }
+    .data-row .data-val {
+        font-size: 13px !important;
+    }
+
+    /* ── Card heads ─────────────────────────────────────────────────────── */
+    .fb-card-head {
+        padding: 12px 14px !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+    .fb-card-head h2,
+    .fb-card-head h3 {
+        font-size: 14px !important;
+    }
+
+    /* ── Earnings page (earnings.php) ───────────────────────────────────── */
+    .earn-hero        { padding: 24px 14px 72px !important; }
+    .earn-hero-inner  { flex-direction: column !important; gap: 14px !important; }
+    .earn-stats-strip { padding: 0 12px !important; margin-top: -48px !important; }
+    .earn-stats-grid  { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+    .earn-body        { padding: 0 12px !important; }
+    .earn-two-col     { grid-template-columns: 1fr !important; }
+
+    /* ── Pending box (view_vendor) ──────────────────────────────────────── */
+    .pending-box {
+        padding: 14px !important;
+    }
+    .pending-box .btn-approve,
+    .pending-box .btn-reject {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* ── Alert notices ──────────────────────────────────────────────────── */
+    .alert-notice,
+    .alert-success,
+    .alert-danger {
+        padding: 12px 14px !important;
+        font-size: 13px !important;
+    }
+
+    /* ── User management form cards ─────────────────────────────────────── */
+    .um-grid,
+    .role-grid,
+    .two-col-form {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ── Small phones (≤ 480px) ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+    .fb-wrap { padding: 12px 10px !important; }
+
+    .stats-strip {
+        grid-template-columns: 1fr 1fr !important;
+        padding: 10px !important;
+        gap: 8px !important;
+    }
+    .stat-tile {
+        padding: 10px !important;
+    }
+    .stat-tile .stat-val { font-size: 20px !important; }
+    .stat-tile .stat-lbl { font-size: 10px !important; }
+
+    /* Tables: even more compact */
+    .fb-table th,
+    .fb-table td {
+        padding: 7px 10px !important;
+        font-size: 11px !important;
+    }
+
+    /* Package grid: single column on small phones */
+    .pkg-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Act buttons in table rows */
+    .act-btn {
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+    }
+
+    /* Page header: smaller title */
+    .fb-page-header h1,
+    .fb-page-header h2 {
+        font-size: 18px !important;
+    }
+
+    /* Reduce card body padding */
+    .fb-card-body {
+        padding: 12px !important;
+    }
+
+    /* Form groups: smaller labels */
+    .form-group label {
+        font-size: 12px !important;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 14px !important;
+        padding: 9px 12px !important;
+    }
+}
