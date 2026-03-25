@@ -5,6 +5,7 @@ A comprehensive food distribution and supply chain management module for [Doliba
 ## Table of Contents
 
 - [Features](#features)
+- [Mobile App](#mobile-app)
 - [Architecture](#architecture)
 - [User Roles](#user-roles)
 - [Installation](#installation)
@@ -12,6 +13,7 @@ A comprehensive food distribution and supply chain management module for [Doliba
 - [Database Schema](#database-schema)
 - [Directory Structure](#directory-structure)
 - [Payment Integration](#payment-integration)
+- [Legal & Compliance](#legal--compliance)
 - [Security](#security)
 - [License](#license)
 
@@ -42,15 +44,49 @@ A comprehensive food distribution and supply chain management module for [Doliba
 - **Vendor Profile** -- View and manage business profile information
 - **Support Tickets** -- Create and track helpdesk tickets with admin responses
 
-### For Subscribers (Beneficiaries)
+### For Members (Subscribers)
 - **Self-Registration** -- Public registration with subscription tier selection and OTP email verification
-- **Subscriber Dashboard** -- Personalized dashboard with subscription status, order history, and quick actions
+- **Member Dashboard** -- Personalized dashboard with subscription status, order history, and quick actions
 - **Product Catalog** -- Browse available food packages with pricing (requires active subscription)
 - **Shopping Cart** -- Database-backed cart with quantity management
 - **Checkout** -- Place orders with delivery address, choose between online payment or pay-on-delivery
 - **Order Tracking** -- View order history with payment and delivery status
 - **Subscription Management** -- View subscription details, renew or upgrade subscription tier
 - **Profile Management** -- Update personal information and password
+
+---
+
+## Mobile App
+
+FoodbankCRM has a companion mobile application built with **React Native (Expo)** targeting Android (Google Play Store).
+
+### Stack
+- **Framework**: React Native + Expo (EAS Build)
+- **Navigation**: Expo Router (file-based routing)
+- **API**: REST endpoints served by the Dolibarr module (`core/pages/`)
+- **Payments**: Paystack (via WebView)
+- **Notifications**: Expo Push Notifications (FCM)
+
+### User Roles in the App
+| Role | Entry Point | Key Screens |
+|------|-------------|-------------|
+| **Member** | `(beneficiary)/` | Dashboard, Packages, Orders, Profile |
+| **Vendor** | `(vendor)/` | Dashboard, Orders, Earnings, Profile |
+
+### Build & Release
+```bash
+# Internal APK (testing)
+eas build --platform android --profile preview
+
+# Production AAB (Play Store)
+eas build --platform android --profile production
+
+# OTA update (JS-only changes, no new build needed)
+eas update --branch production --message "description"
+```
+
+### Assets
+Play Store assets (feature graphic, icon export previews) are in `app/assets/store/`.
 
 ---
 
@@ -101,7 +137,7 @@ Two mechanisms ensure users land on the correct dashboard after login:
 |------|-------------|------------|-----------|------------------|
 | **Admin** | N/A (Dolibarr superadmin) | Always active | `dashboard_admin.php` | Full CRUD, approve vendors, manage tiers, view reports |
 | **Vendor** | `register_vendor.php` | OTP + Admin approval | `dashboard_vendor.php` | Submit inventory, manage products, support tickets |
-| **Subscriber** | `register.php` | OTP + Subscription payment | `dashboard_beneficiary.php` | Browse catalog, place orders, manage subscription |
+| **Member** | `register.php` | OTP + Subscription payment | `dashboard_beneficiary.php` | Browse catalog, place orders, manage subscription |
 
 ---
 
@@ -276,8 +312,17 @@ foodbankcrm/
 |-- sql/
 |   +-- dolibarr_allversions.sql      # Upgrade migration script (reserved)
 |
+|-- css/
+|   +-- admin_mobile.css              # Shared responsive CSS for all admin pages (injected via llxHeader)
+|
+|-- core/pages/
+|   |-- terms.php                     # Terms & Conditions (public, NDPA 2023 compliant)
+|   |-- privacy_policy.php            # Privacy Policy (public, NDPA 2023 compliant)
+|   |-- delete_account.php            # Account/data deletion request form (Play Store compliance)
+|   +-- 404.php                       # Branded 404 error page
+|
 |-- index.php                         # Public gateway / smart router
-+-- core/modules/modFoodbankcrm.class.php  # Module descriptor
++-- .htaccess                         # Security headers + custom error pages
 ```
 
 ---
@@ -304,6 +349,27 @@ FoodbankCRM integrates with [Paystack](https://paystack.com/) for online payment
 - Paystack amounts are in **Kobo** (1 Naira = 100 Kobo)
 - The module converts prices: `amount * 100` when sending to Paystack
 - Verification checks: `paystack_amount / 100` matches expected price (with 1 Naira tolerance)
+
+---
+
+## Legal & Compliance
+
+### Public Legal Pages
+All three pages are standalone (no Dolibarr login required) and publicly accessible:
+
+| Page | URL | Purpose |
+|------|-----|---------|
+| `privacy_policy.php` | `/core/pages/privacy_policy.php` | NDPA 2023 compliant privacy policy — required for Play Store |
+| `terms.php` | `/core/pages/terms.php` | Full Terms & Conditions (17 sections) |
+| `delete_account.php` | `/core/pages/delete_account.php` | Account/data deletion request form — required for Play Store |
+
+### Google Play Store Compliance
+- **Privacy Policy URL**: linked from Play Console Data Safety section
+- **Delete account URL**: `delete_account.php` handles both full account deletion and data-only deletion requests
+- **Data retention**: Financial/audit records retained 7 years per Nigerian financial regulations; all other personal data deleted on request within 30 days
+
+### NDPA 2023 (Nigeria Data Protection Act)
+The privacy policy covers all 8 data subject rights under NDPA 2023, 72-hour breach notification, and includes NDPC contact details.
 
 ---
 

@@ -13,6 +13,7 @@ Comprehensive record of all development, security audits, bug fixes, and improve
 | 1.2 | 2025 | Subscriber dashboard fixes, payment integration (Paystack) |
 | 1.3 | 2025 | Self-registration pages for vendors and subscribers with OTP verification |
 | 1.4 | 2026-02 | Full security audit, bug fixes, and codebase cleanup (details below) |
+| 1.5 | 2026-03 | Mobile app companion, legal pages, admin mobile responsiveness, Play Store prep |
 
 ---
 
@@ -276,11 +277,167 @@ Hardcoding API keys in individual files creates maintenance burden (changing key
 
 ---
 
+---
+
+## v1.5 -- Mobile App, Legal Pages & Admin Responsiveness (March 2026)
+
+### 1. Companion Mobile App (React Native / Expo)
+
+A full mobile application was built alongside the Dolibarr module targeting Android (Google Play Store).
+
+**Stack:** React Native + Expo Router, EAS Build, Expo Push Notifications (FCM)
+
+**Member app screens:** Dashboard, Available Packages, My Orders, Order Detail, Profile, Change Password, Subscription status
+
+**Vendor app screens:** Dashboard, Orders, Earnings, Product Catalog, Profile, Support, Change Password
+
+**Key implementation details:**
+- File-based routing via Expo Router: `(beneficiary)/` and `(vendor)/` route groups
+- `useSafeAreaInsets()` hook for consistent header padding across all device sizes
+- Push notification tokens stored on both `foodbank_beneficiaries` and `foodbank_vendors` tables
+- Paystack payments handled via `expo-web-browser` WebView sheet
+- `Config.WEB_URL` reads `EXPO_PUBLIC_WEB_URL` env var — all API calls use this base URL
+- Legal pages linked from both profile screens via `WebBrowser.openBrowserAsync()`
+
+**Build commands:**
+```bash
+eas build --platform android --profile preview     # APK for internal testing
+eas build --platform android --profile production  # AAB for Play Store
+eas update --branch production --message "..."     # OTA JS-only update
+```
+
+---
+
+### 2. Legal Pages (NDPA 2023 Compliance)
+
+Three new public-facing pages added to `core/pages/` (no Dolibarr login required):
+
+#### `privacy_policy.php`
+- 14 sections covering all NDPA 2023 requirements
+- Data collection table, 8 data subject rights grid, retention schedule
+- 72-hour breach notification commitment
+- NDPC contact details included
+- **Fix applied:** Initial version used wrong `require_once '../../main.inc.php'` path causing 500 error. Corrected to `dirname(__DIR__, 4)` matching all other pages in `core/pages/`.
+
+#### `terms.php`
+- 17 sections — acceptable use, subscription terms, liability cap (₦50,000), governing law (Lagos State)
+- Table of contents with anchor links
+- Same path fix applied as privacy policy
+
+#### `delete_account.php`
+- Created for Google Play Store Data Safety compliance (required for all apps with accounts)
+- Form accepts: full name, email, account type (Member/Vendor), deletion scope (full account vs data only), optional reason
+- Confirmation checkbox with irreversibility warning
+- On submit: sends email to `support@xdigitalfoodbank.com` via `mail()` + displays reference number
+- Data deletion/retention table shows exactly what is deleted vs retained and for how long
+- Fallback: manual email instructions shown if server mail is not configured
+- **Play Console fields:** both "Delete account URL" and "Delete data URL" point to this page
+
+---
+
+### 3. index.php — "Beneficiary" → "Member" Rename
+
+All user-facing text updated throughout `index.php`:
+
+| Before | After |
+|--------|-------|
+| Beneficiary / Beneficiaries | Member / Members |
+| Subscribe as Beneficiary → | Subscribe as Member → |
+| Subscription Tiers (card title) | Membership Tiers |
+| Section `id="beneficiaries"` | `id="members"` |
+| 1,000+ Beneficiaries Served | 1,000+ Members Served |
+| Subscribe Free (nav) | Join Free |
+
+**Preserved unchanged:** PHP internal references (`isBeneficiary()`, `dashboard_beneficiary.php`, `fk_beneficiary`) — these are database/code identifiers and were not changed.
+
+Footer "Legal" column added with links to Privacy Policy and Terms & Conditions.
+
+---
+
+### 4. Admin Panel — Full Mobile Responsiveness
+
+#### `css/admin_mobile.css` (new shared stylesheet)
+A single CSS file targeting all shared class names used across admin pages. Injected via `llxHeader()` so it applies automatically without modifying individual page styles.
+
+**Breakpoints:**
+
+`@media (max-width: 768px)` — tablet:
+- `.fb-page-header` stacks title + action buttons vertically
+- `.stats-strip` → 2-column grid
+- `.fb-card` → `overflow-x: auto` (horizontal scroll for tables)
+- `.fb-table` → `min-width: 520px`
+- `.filter-bar` / `.search-bar` → stack inputs vertically, full-width
+- `.profile-grid`, `.detail-grid`, `.info-grid` → single column
+- `.form-grid`, `.form-grid-3` → single column
+- `.pkg-grid` → `minmax(260px, 1fr)`
+- Earnings page classes (`earn-hero`, `earn-two-col`, etc.)
+
+`@media (max-width: 480px)` — small phones:
+- `.stats-strip` → compact 2-column
+- `.pkg-grid` → single column
+- `.act-btn` → smaller padding/font
+- `.fb-card-body` → tighter padding
+- Form inputs → `font-size: 14px`
+
+#### Bulk injection across all 42 admin pages
+A Python script was used to insert `$_fb_admin_head` (favicon + CSS link) before the first `llxHeader()` call in each file and replace `llxHeader('', ...)` with `llxHeader($_fb_admin_head, ...)`.
+
+```php
+$_fb_admin_head = '<link rel="icon" ...favicon.png">'
+              . '<link rel="stylesheet" ...admin_mobile.css">';
+llxHeader($_fb_admin_head, 'Page Title');
+```
+
+**Special case — `view_order.php`:** Had two `llxHeader` calls (one in error branch, one in normal path). Variable definition moved before the `if` block so both branches could use it.
+
+**Files updated (42 total):**
+All admin CRUD pages + `dashboard_admin.php` (which previously only had favicon, now also includes the CSS).
+
+---
+
+### 5. Custom 404 Error Page
+
+#### `core/pages/404.php`
+- Standalone branded page (no login required)
+- Sends correct `http_response_code(404)` header
+- Shows gradient "404" number, clear message, and quick links back to Home, Member Dashboard, Vendor Dashboard, Support
+- Same teal brand styling as legal pages
+
+#### `.htaccess` updated
+Added to the module `.htaccess` (Section 3):
+```apache
+ErrorDocument 404 /htdocs/custom/foodbankcrm/core/pages/404.php
+ErrorDocument 403 /htdocs/custom/foodbankcrm/core/pages/404.php
+```
+
+#### `root.htaccess` (new file)
+Separate file to be placed at `public_html/` (domain root) for site-wide 404 coverage. Includes 404, 403, and 500 error handlers.
+
+---
+
+### 6. Play Store Submission Preparation
+
+**Assets created** in `app/assets/store/`:
+- `feature-graphic.html` — 1024×500 feature graphic (teal gradient, tagline, dual phone mockups)
+- `icon-512.html` — 512×512 icon export page with size previews
+- `short-promo-graphic.html` — 180×120 short promo rendered at 4× for screenshotting
+
+**app.json updated:**
+- Top-level `"icon"` changed from `icon.png` (wordmark) to `favicon.png` (square symbol — correct for app icons)
+- `expo-notifications` plugin icon also updated to `favicon.png`
+
+**Privacy Policy URL** for Play Console:
+`https://xdigitalfoodbank.com/htdocs/custom/foodbankcrm/core/pages/privacy_policy.php`
+
+---
+
 ## Known Limitations & Future Work
 
-- **Email delivery**: OTP emails rely on Dolibarr's `CMailFile` class. A working SMTP configuration is required in Dolibarr's email settings.
+- **Email delivery**: OTP emails and deletion request emails rely on PHP `mail()` / Dolibarr's `CMailFile` class. A working SMTP configuration is required in Dolibarr's email settings. If `mail()` is not configured on the server, the `delete_account.php` form will still show a success screen but the email won't be delivered — the fallback manual email instruction is shown for this reason.
 - **Paystack only**: Currently only Paystack is supported for online payments. The architecture could be extended to support additional gateways.
-- **No password reset flow**: Subscribers and vendors must contact admin for password resets. A self-service forgot-password flow could be added.
+- **No password reset flow**: Members and vendors must contact admin for password resets. A self-service forgot-password flow could be added.
 - **Support ticket system**: Basic implementation (single reply per ticket). Could be extended to support threaded conversations and attachments.
 - **No automated subscription expiry notifications**: The `check_subscription_status.php` include expires subscriptions on page load, but doesn't proactively notify subscribers before expiry.
-- **Translation**: Only English (`en_US`) translations are provided. The lang file contains some placeholder strings from the module generator that could be cleaned up.
+- **Translation**: Only English (`en_US`) translations are provided.
+- **Mobile app Android only**: The current EAS build targets Android. iOS support would require additional provisioning profile setup and App Store submission.
+- **Deletion requests are manual**: `delete_account.php` sends an email to the support team — there is no automated deletion pipeline. Requests must be processed manually within 30 days.
